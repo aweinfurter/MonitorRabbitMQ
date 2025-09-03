@@ -349,6 +349,27 @@ class WebRoutes:
                 
             except Exception as e:
                 return jsonify({'success': False, 'message': f'Erro: {str(e)}'})
+        
+        @app.route('/api/selenium/info_navegador', methods=['GET'])
+        def api_selenium_info_navegador():
+            """API para obter informações sobre o navegador detectado"""
+            try:
+                # Cria uma instância temporária para obter informações do navegador
+                from modules.selenium_embed import SeleniumEmbedded
+                temp_selenium = SeleniumEmbedded()
+                info = temp_selenium.obter_info_navegador()
+                
+                return jsonify({
+                    'success': True,
+                    'navegador': info['navegador'],
+                    'sistema': info['sistema'],
+                    'suporte_headless': info['suporte_headless'],
+                    'requer_configuracao': info['requer_configuracao'],
+                    'instrucoes': info['instrucoes']
+                })
+                
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'Erro ao obter info do navegador: {str(e)}'})
 
         # API de Logs para polling HTTP
         @app.route('/api/logs', methods=['GET'])

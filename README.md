@@ -93,6 +93,18 @@ pip install Pillow>=9.0.0
 pip install requests>=2.25.0
 ```
 
+### 🖥️ Compatibilidade Multi-plataforma
+
+O sistema detecta automaticamente seu sistema operacional e usa o navegador mais adequado:
+
+| Sistema | Navegador Padrão | Modo Headless | Configuração |
+|---------|------------------|---------------|--------------|
+| Windows | Chrome | ✅ Sim | Automática |
+| Linux | Chrome | ✅ Sim | Automática |
+| macOS | Safari | ❌ Não | Manual* |
+
+> **⚠️ Usuários de macOS**: É necessária configuração manual do Safari. Consulte [`SAFARI_SETUP.md`](SAFARI_SETUP.md) para instruções detalhadas.
+
 ## 🎯 Uso
 
 ### Inicialização

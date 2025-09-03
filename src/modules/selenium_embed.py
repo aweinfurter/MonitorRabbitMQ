@@ -8,9 +8,11 @@ import os
 import time
 import threading
 import base64
+import platform
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.safari.options import Options as SafariOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -26,11 +28,100 @@ class SeleniumEmbedded:
         self.is_running = False
         self.screenshot_base64 = None
         
+        # Informa qual navegador será usado
+        info_navegador = self.obter_info_navegador()
+        self.log(f"🌐 Sistema detectado: {info_navegador['sistema']}")
+        self.log(f"🔧 Navegador selecionado: {info_navegador['navegador']}")
+        
+        if info_navegador['requer_configuracao']:
+            self.log("⚙️ Configuração necessária para Safari:", "WARNING")
+            for instrucao in info_navegador['instrucoes']:
+                self.log(f"   • {instrucao}", "INFO")
+        
+    def _detectar_sistema_operacional(self):
+        """Detecta o sistema operacional atual"""
+        sistema = platform.system().lower()
+        return sistema
+        
+    def _eh_macos(self):
+        """Verifica se está rodando no macOS"""
+        return self._detectar_sistema_operacional() == 'darwin'
+        
+    def obter_info_navegador(self):
+        """Retorna informações sobre qual navegador será usado"""
+        sistema = self._detectar_sistema_operacional()
+        if self._eh_macos():
+            return {
+                'navegador': 'Safari',
+                'sistema': 'macOS',
+                'suporte_headless': False,
+                'requer_configuracao': True,
+                'instrucoes': [
+                    'Abra Safari > Preferências > Avançado',
+                    'Marque "Mostrar menu Desenvolver na barra de menus"',
+                    'No menu Desenvolver, marque "Permitir Automação Remota"'
+                ]
+            }
+        else:
+            return {
+                'navegador': 'Chrome',
+                'sistema': sistema.title(),
+                'suporte_headless': True,
+                'requer_configuracao': False,
+                'instrucoes': []
+            }
+        
     def log(self, mensagem, categoria="INFO"):
         """Envia log para callback"""
         self.callback_log(f"[Selenium] {mensagem}", categoria)
     
     def inicializar_driver(self, user_data_dir=None):
+        """Inicializa o driver baseado no sistema operacional"""
+        if self._eh_macos():
+            return self._inicializar_safari()
+        else:
+            return self._inicializar_chrome(user_data_dir)
+    
+    def _inicializar_safari(self):
+        """Inicializa o driver Safari para macOS"""
+        try:
+            self.log("🔧 Inicializando driver Safari (macOS detectado)...")
+            
+            safari_options = SafariOptions()
+            
+            # Safari não suporte headless, então vamos usar modo visual
+            if self.modo_escondido:
+                self.log("⚠️ Safari não suporta modo headless, usando modo visual", "WARNING")
+                self.modo_escondido = False
+            
+            # Configurações básicas do Safari
+            try:
+                self.driver = webdriver.Safari(options=safari_options)
+                self.log("✅ Driver Safari inicializado com sucesso!")
+            except Exception as e:
+                self.log(f"❌ Erro ao inicializar Safari: {e}", "ERROR")
+                self.log("💡 Certifique-se de que o Safari está configurado para desenvolvimento:", "INFO")
+                self.log("   - Abra Safari > Preferências > Avançado", "INFO")
+                self.log("   - Marque 'Mostrar menu Desenvolver na barra de menus'", "INFO")
+                self.log("   - No menu Desenvolver, marque 'Permitir Automação Remota'", "INFO")
+                return False
+            
+            # Configurações do driver
+            self.driver.implicitly_wait(10)
+            self.driver.set_page_load_timeout(60)
+            
+            # Configurar tamanho da janela
+            self.driver.set_window_size(1920, 1080)
+            
+            self.is_running = True
+            self.log("🎯 Driver Safari inicializado com sucesso!")
+            return True
+            
+        except Exception as e:
+            self.log(f"❌ Erro ao inicializar driver Safari: {e}", "ERROR")
+            return False
+    
+    def _inicializar_chrome(self, user_data_dir=None):
         """Inicializa o driver Chrome com as configurações apropriadas"""
         try:
             self.log("🔧 Inicializando driver Chrome...")
@@ -120,7 +211,7 @@ class SeleniumEmbedded:
             return True
             
         except Exception as e:
-            self.log(f"❌ Erro ao inicializar driver: {e}", "ERROR")
+            self.log(f"❌ Erro ao inicializar driver Chrome: {e}", "ERROR")
             return False
     
     def navegar_para_url(self, url):
@@ -347,6 +438,12 @@ class SeleniumEmbedded:
             if self.driver:
                 self.finalizar()
             
+            # Verifica se está no macOS usando Safari
+            if self._eh_macos():
+                self.log("⚠️ Safari não suporta alternância de modo - sempre visual", "WARNING")
+                self.modo_escondido = False
+                return self.inicializar_driver()
+            
             self.modo_escondido = not self.modo_escondido
             modo_texto = "escondido" if self.modo_escondido else "visual"
             self.log(f"🔄 Alternando para modo {modo_texto}")
@@ -369,6 +466,36 @@ class SeleniumEmbedded:
                 
         except Exception as e:
             self.log(f"⚠️ Erro ao finalizar driver: {e}", "WARNING")
+    
+    def testar_navegador(self):
+        """Testa se o navegador funciona corretamente"""
+        try:
+            info = self.obter_info_navegador()
+            self.log(f"🧪 Testando navegador {info['navegador']} no {info['sistema']}...")
+            
+            if not self.inicializar_driver():
+                return False
+                
+            # Testa navegação básica
+            if self.navegar_para_url("https://www.google.com"):
+                self.log("✅ Teste de navegação bem-sucedido!")
+                url_atual = self.current_url
+                self.log(f"📍 URL atual: {url_atual}")
+                
+                # Testa captura de screenshot
+                if self.capturar_screenshot():
+                    self.log("✅ Teste de screenshot bem-sucedido!")
+                
+                self.finalizar()
+                return True
+            else:
+                self.log("❌ Falha no teste de navegação", "ERROR")
+                self.finalizar()
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Erro no teste: {e}", "ERROR")
+            return False
 
 # Classe singleton para uso global
 _selenium_instance = None

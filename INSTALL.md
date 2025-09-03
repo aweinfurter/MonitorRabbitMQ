@@ -39,9 +39,21 @@ pip install -r requirements.txt
 python src/run_web.py
 ```
 
+> **📱 Usuários de macOS**: O sistema detecta automaticamente o macOS e usa o Safari como navegador padrão. Consulte `SAFARI_SETUP.md` para instruções de configuração do Safari.
+
 ## Acesso
 
 Após iniciar, acesse: **http://localhost:8083**
+
+## ⚠️ Configuração Especial para macOS
+
+Se você está usando **macOS**, o sistema usará automaticamente o Safari. Para configurar:
+
+1. **Abra o Safari** > Preferências > Avançado
+2. **Marque** "Mostrar menu Desenvolver na barra de menus"
+3. **No menu Desenvolver**, marque "Permitir Automação Remota"
+
+📖 **Documentação completa**: Consulte `SAFARI_SETUP.md` para informações detalhadas.
 
 ## Primeira Configuração
 
