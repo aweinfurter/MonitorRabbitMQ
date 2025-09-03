@@ -162,6 +162,9 @@ class SeleniumEmbedded:
         # Configura o serviço do Chrome com gerenciamento automático do driver
         service = Service(ChromeDriverManager().install())
         options = self._configurar_opcoes_chrome(modo_stealth)
+
+         # 🔒 FORÇA o caminho do Chrome no macOS
+        options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     
         driver = webdriver.Chrome(service=service, options=options)
     
@@ -170,7 +173,12 @@ class SeleniumEmbedded:
         else:
             print("✅ Chrome iniciado em modo DEBUG - visível para autenticação!")
         
-        return driver
+        self.driver.implicitly_wait(10)
+        self.driver.set_page_load_timeout(60)
+        self.driver.set_window_size(1920, 1080)
+        self.is_running = True
+        
+        return True
 
     def navegar_para_url(self, url):
         """Navega para uma URL específica"""
