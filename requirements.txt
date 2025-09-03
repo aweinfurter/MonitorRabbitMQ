@@ -1,0 +1,25 @@
+# MonitorRabbitMQ - Dependências
+# Sistema de monitoramento automatizado de filas RabbitMQ
+
+# Framework Web
+Flask>=2.0.0
+Jinja2>=3.0.0
+
+# Automação Web
+selenium>=4.0.0
+webdriver-manager>=3.8.0
+
+# Manipulação de Imagens (para screenshots)
+Pillow>=9.0.0
+
+# Utilitários
+requests>=2.25.0
+
+# Sistema de Alertas (Windows)
+pywin32>=306; sys_platform == "win32"
+
+# Dependências opcionais para melhor performance
+eventlet>=0.33.0
+
+# Desenvolvimento (opcional)
+# flask-socketio>=5.0.0  # Para WebSocket em versões futuras

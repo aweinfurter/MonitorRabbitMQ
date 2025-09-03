@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MonitorRabbitMQ {{ versao }} - Configuração</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/configuracao.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'><path fill='%23007bff' d='M392.8 65.2C375.8 60.3 358.1 70.2 353.2 87.2L225.2 535.2C220.3 552.2 230.2 569.9 247.2 574.8C264.2 579.7 281.9 569.8 286.8 552.8L414.8 104.8C419.7 87.8 409.8 70.1 392.8 65.2zM457.4 201.3C444.9 213.8 444.9 234.1 457.4 246.6L530.8 320L457.4 393.4C444.9 405.9 444.9 426.2 457.4 438.7C469.9 451.2 490.2 451.2 502.7 438.7L598.7 342.7C611.2 330.2 611.2 309.9 598.7 297.4L502.7 201.4C490.2 188.9 469.9 188.9 457.4 201.4zM182.7 201.3C170.2 188.8 149.9 188.8 137.4 201.3L41.4 297.3C28.9 309.8 28.9 330.1 41.4 342.6L137.4 438.6C149.9 451.1 170.2 451.1 182.7 438.6C195.2 426.1 195.2 405.8 182.7 393.3L109.3 320L182.6 246.6C195.1 234.1 195.1 213.8 182.6 201.3z'/></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-cogs"></i> MonitorRabbitMQ</h1>
+            <p>Sistema de Configuração Web {{ versao }}</p>
+        </div>
+        
+        <div class="form-container">
+            <form id="configForm" action="/salvar_configuracao" method="POST">
+                <div class="main-layout">
+                    <!-- Coluna da Esquerda - Filas -->
+                    <div class="left-column">
+                        <!-- Filas -->
+                        <div class="section queues">
+                            <div class="section-title"><i class="fas fa-list-check"></i> Filas Monitoradas</div>
+                            
+                            <div class="form-group">
+                                <label>Selecione as filas para monitorar:</label>
+                                
+                                <!-- Time Saídas -->
+                                <div class="filas-group">
+                                    <h4 style="color: #6f42c1; margin: 15px 0 10px 0;"><i class="fas fa-truck-loading"></i> Time Saídas</h4>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_conf_exp" name="filas_selecionadas" 
+                                               value="wms-conferencia-expedicao-errors.wms-conferencia-expedicao-errors"
+                                               {{ 'checked' if 'wms-conferencia-expedicao-errors.wms-conferencia-expedicao-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_conf_exp">WMS Conferência Expedição Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_estoque" name="filas_selecionadas" 
+                                               value="wms-estoque-errors.wms-estoque-errors"
+                                               {{ 'checked' if 'wms-estoque-errors.wms-estoque-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_estoque">WMS Estoque Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_expedicao" name="filas_selecionadas" 
+                                               value="wms-expedicao-errors.wms-expedicao-errors"
+                                               {{ 'checked' if 'wms-expedicao-errors.wms-expedicao-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_expedicao">WMS Expedição Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_picking" name="filas_selecionadas" 
+                                               value="wms-picking-errors.wms-picking-errors"
+                                               {{ 'checked' if 'wms-picking-errors.wms-picking-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_picking">WMS Picking Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_selecao" name="filas_selecionadas" 
+                                               value="wms-selecao-estoque-errors.wms-selecao-estoque-errors"
+                                               {{ 'checked' if 'wms-selecao-estoque-errors.wms-selecao-estoque-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_selecao">WMS Seleção Estoque Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_separacao" name="filas_selecionadas" 
+                                               value="wms-separacao-errors.wms-separacao-errors"
+                                               {{ 'checked' if 'wms-separacao-errors.wms-separacao-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_separacao">WMS Separação Errors</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Time Entradas -->
+                                <div class="filas-group">
+                                    <h4 style="color: #28a745; margin: 15px 0 10px 0;"><i class="fas fa-boxes"></i> Time Entradas</h4>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_atividade_extra" name="filas_selecionadas" 
+                                               value="wms-atividade-extra-errors.wms-atividade-extra-errors"
+                                               {{ 'checked' if 'wms-atividade-extra-errors.wms-atividade-extra-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_atividade_extra">WMS Atividade Extra Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_etiqueta_query_entradas" name="filas_selecionadas" 
+                                               value="etiqueta-query-errors.etiqueta-query-errors"
+                                               {{ 'checked' if 'etiqueta-query-errors.etiqueta-query-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_etiqueta_query_entradas">Etiqueta Query Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wes_core" name="filas_selecionadas" 
+                                               value="wes-core-errors.wes-core-errors"
+                                               {{ 'checked' if 'wes-core-errors.wes-core-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wes_core">WES Core Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wes_query" name="filas_selecionadas" 
+                                               value="wes-query-errors.wes-query-errors"
+                                               {{ 'checked' if 'wes-query-errors.wes-query-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wes_query">WES Query Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_armazenagem" name="filas_selecionadas" 
+                                               value="wms-armazenagem-errors.wms-armazenagem-errors"
+                                               {{ 'checked' if 'wms-armazenagem-errors.wms-armazenagem-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_armazenagem">WMS Armazenagem Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_conf_rec" name="filas_selecionadas" 
+                                               value="wms-conferencia-recebimento-errors.wms-conferencia-recebimento-errors"
+                                               {{ 'checked' if 'wms-conferencia-recebimento-errors.wms-conferencia-recebimento-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_conf_rec">WMS Conferência Recebimento Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_endereco" name="filas_selecionadas" 
+                                               value="wms-endereco-errors.wms-endereco-errors"
+                                               {{ 'checked' if 'wms-endereco-errors.wms-endereco-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_endereco">WMS Endereço Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_recebimento" name="filas_selecionadas" 
+                                               value="wms-recebimento-errors.wms-recebimento-errors"
+                                               {{ 'checked' if 'wms-recebimento-errors.wms-recebimento-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_recebimento">WMS Recebimento Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_setup" name="filas_selecionadas" 
+                                               value="wms-setup-errors.wms-setup-errors"
+                                               {{ 'checked' if 'wms-setup-errors.wms-setup-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_setup">WMS Setup Errors</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Time Inventário -->
+                                <div class="filas-group">
+                                    <h4 style="color: #fd7e14; margin: 15px 0 10px 0;"><i class="fas fa-chart-bar"></i> Time Inventário</h4>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_inventario" name="filas_selecionadas" 
+                                               value="inventario-errors.inventario-errors"
+                                               {{ 'checked' if 'inventario-errors.inventario-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_inventario">Inventário Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_estoque_fiscal" name="filas_selecionadas" 
+                                               value="wms-estoque-fiscal-errors.wms-estoque-fiscal-errors"
+                                               {{ 'checked' if 'wms-estoque-fiscal-errors.wms-estoque-fiscal-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_estoque_fiscal">WMS Estoque Fiscal Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_inventario" name="filas_selecionadas" 
+                                               value="wms-inventario-errors.wms-inventario-errors"
+                                               {{ 'checked' if 'wms-inventario-errors.wms-inventario-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_inventario">WMS Inventário Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_manufatura" name="filas_selecionadas" 
+                                               value="wms-manufatura-errors.wms-manufatura-errors"
+                                               {{ 'checked' if 'wms-manufatura-errors.wms-manufatura-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_manufatura">WMS Manufatura Errors</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Filas Compartilhadas -->
+                                <div class="filas-group">
+                                    <h4 style="color: #17a2b8; margin: 15px 0 10px 0;"><i class="fas fa-link"></i> Query</h4>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_query" name="filas_selecionadas" 
+                                               value="wms-query-errors.wms-query-errors"
+                                               {{ 'checked' if 'wms-query-errors.wms-query-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_query">WMS Query Errors</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Filas Documento -->
+                                <div class="filas-group">
+                                    <h4 style="color: #007bff; margin: 15px 0 10px 0;"><i class="fas fa-file-alt"></i> Filas Documento</h4>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_documento" name="filas_selecionadas" 
+                                               value="documento-errors.documento-errors"
+                                               {{ 'checked' if 'documento-errors.documento-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_documento">Documento Errors</label>
+                                    </div>
+                                    
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_doc_query" name="filas_selecionadas" 
+                                               value="documento-query-errors.errors"
+                                               {{ 'checked' if 'documento-query-errors.errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_doc_query">Documento Query Errors</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Botões de seleção rápida -->
+                                <div class="quick-select">
+                                    <button type="button" class="quick-btn saidas" onclick="selecionarTimeSaidas()">
+                                        <i class="fas fa-check-circle"></i> Selecionar Time Saídas
+                                    </button>
+                                    <button type="button" class="quick-btn entradas" onclick="selecionarTimeEntradas()">
+                                        <i class="fas fa-check-circle"></i> Selecionar Time Entradas
+                                    </button>
+                                    <button type="button" class="quick-btn inventario" onclick="selecionarTimeInventario()">
+                                        <i class="fas fa-check-circle"></i> Selecionar Time Inventário
+                                    </button>
+                                    <button type="button" class="quick-btn documento" onclick="selecionarTodasDocumento()">
+                                        <i class="fas fa-check-circle"></i> Selecionar Todas Documento
+                                    </button>
+                                    <button type="button" class="quick-btn" onclick="limparSelecao()">
+                                        <i class="fas fa-times-circle"></i> Limpar Seleção
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Coluna da Direita - Credenciais, Ambiente, Monitoramento e Botão -->
+                    <div class="right-column">
+                        <!-- Credenciais -->
+                        <div class="section credentials">
+                            <div class="section-title"><i class="fas fa-shield-alt"></i> Credenciais SSO</div>
+                            
+                            <!-- Login SSO -->
+                            <div class="form-group">
+                                <label for="sso_username">Login SSO *</label>
+                                <input type="text" id="sso_username" name="sso_username" 
+                                       value="{{ config.get('sso_username', '') }}" required>
+                            </div>
+                            
+                            <!-- Senha SSO -->
+                            <div class="form-group">
+                                <label for="sso_password">Senha SSO</label>
+                                <input type="password" id="sso_password" name="sso_password" 
+                                       value="{{ config.get('sso_password', '') }}">
+                            </div>
+                            
+                            <!-- Token MFA -->
+                            <div class="form-group">
+                                <label for="sso_mfa_token">Token MFA (Opcional)</label>
+                                <input type="text" id="sso_mfa_token" name="sso_mfa_token" 
+                                       value="{{ config.get('sso_mfa_token', '') }}"
+                                       placeholder="Deixe vazio se não usar MFA">
+                            </div>
+                        </div>
+                        
+                        <!-- RabbitMQ -->
+                        <div class="section environment">
+                            <div class="section-title"><i class="fas fa-server"></i> RabbitMQ</div>
+                            
+                            <!-- Serviço -->
+                            <div class="form-group">
+                                <label for="servico">Serviço</label>
+                                <select id="servico" name="servico">
+                                    {% for nome, svc in config.get('serviços', {}).items() %}
+                                        {# add data-url and data-password for JS autofill (supports old string svc or new dict) #}
+                                        {% if svc is string %}
+                                            <option value="{{ nome }}" data-url="{{ svc }}" data-password="" {{ 'selected' if config.get('serviço_selecionado') == nome else '' }}>{{ nome }}</option>
+                                        {% else %}
+                                            <option value="{{ nome }}" data-url="{{ svc.get('url','') }}" data-password="{{ svc.get('password','') }}" {{ 'selected' if config.get('serviço_selecionado') == nome else '' }}>{{ nome }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- URL do serviço (auto-fill) -->
+                            <div class="form-group">
+                                <label for="servico_url">URL do Serviço</label>
+                                <input type="text" id="servico_url" name="servico_url" readonly
+                                       value="{{ config.get('serviços', {}).get(config.get('serviço_selecionado', ''), {}).get('url', '') }}">
+                            </div>
+                            
+                            <!-- Username RabbitMQ -->
+                            <div class="form-group">
+                                <label for="username">Username RabbitMQ</label>
+                                <input type="text" id="username" name="username" 
+                                       value="{{ config.get('username', 'supply-logistica-devops') }}">
+                            </div>
+                            
+                            <!-- Senha RabbitMQ -->
+                            <div class="form-group">
+                                <label for="rabbitmq_password">Senha RabbitMQ</label>
+                                <input type="password" id="rabbitmq_password" name="rabbitmq_password" 
+                                       value="{{ config.get('rabbitmq_password', '') }}">
+                            </div>
+                            
+                            <!-- Regex Filtro -->
+                            <div class="form-group">
+                                <label for="regex_filtro">Regex Filtro</label>
+                                <input type="text" id="regex_filtro" name="regex_filtro" 
+                                       value="{{ config.get('regex_filtro', 'wms.+-errors|documento.+-errors|etiqueta.+-errors|wes.+-errors') }}">
+                            </div>
+                        </div>
+                        
+                        <!-- Monitoramento -->
+                        <div class="section monitoring">
+                            <div class="section-title"><i class="fas fa-clock"></i> Monitoramento</div>
+                            
+                            <div class="form-group">
+                                <label for="intervalo">Intervalo (minutos)</label>
+                                <input type="number" id="intervalo" name="intervalo" min="1" max="60" 
+                                       value="{{ config.get('intervalo_minutos', 10) }}">
+                            </div>
+                        </div>
+                        
+                        <!-- Botão de Iniciar Monitoramento -->
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-play"></i> Iniciar Monitoramento
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    <!-- services JSON para uso do JS (não visível) -->
+    <script id="__services_json" type="application/json">{{ services_json | tojson }}</script>
+        
+        <div class="footer">
+            Desenvolvido por André Weinfurter © 2025 - TOTVS<br>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/configuracao.js') }}"></script>
+</body>
+</html>

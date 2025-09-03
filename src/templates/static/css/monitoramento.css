@@ -1,0 +1,506 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Estilos do body */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Container principal */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #0c9cbc 0%, #1e3c72 100%);
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    font-size: 1.8em;
+}
+
+.header .status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Status Indicator (maior contraste e suporte às classes usadas pelo JS) */
+.status-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffc107; /* fallback */
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(0,0,0,0.0);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+/* Suporta tanto .status-indicator.monitoring quanto .status-indicator.status-running */
+.status-indicator.monitoring,
+.status-indicator.status-running {
+    background-color: #28a745;
+    box-shadow: 0 0 10px rgba(40,167,69,0.35);
+    transform: scale(1.05);
+    animation: status-pulse 1.8s infinite;
+}
+
+/* Parado / erro */
+.status-indicator.stopped,
+.status-indicator.status-stopped {
+    background-color: #dc3545;
+    box-shadow: 0 0 10px rgba(220,53,69,0.35);
+    animation: none;
+}
+
+@keyframes status-pulse {
+    0% { box-shadow: 0 0 6px rgba(0,0,0,0.05); }
+    50% { box-shadow: 0 0 18px rgba(0,0,0,0.08); }
+    100% { box-shadow: 0 0 6px rgba(0,0,0,0.05); }
+}
+
+/* Selenium Embarcado */
+#selenium-container.selenium-hidden {
+    display: none;
+}
+
+/* Status text mais visível - regras mais abaixo para posicionamento sobre a barra */
+
+#selenium-container {
+    margin: 20px;
+    border: 2px solid #0c9cbc;
+    border-radius: 10px;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Regras válidas para progress-bar dentro do selenium container */
+#selenium-container .progress-bar {
+    width: 100%;
+    height: 12px; /* aumentado para melhor visibilidade */
+    background: linear-gradient(90deg, #f1f3f5, #e9ecef);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+
+.selenium-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.selenium-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.selenium-controls .btn {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.selenium-controls .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.selenium-viewer {
+    padding: 15px 20px;
+}
+
+.selenium-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.selenium-screenshot {
+    text-align: center;
+    padding: 20px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.selenium-placeholder {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 1.1em;
+}
+
+#selenium-screenshot {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Container do navegador Selenium */
+.selenium-browser {
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+.selenium-browser iframe {
+    border: none;
+    width: 100%;
+    height: 600px;
+    display: block;
+}
+
+/* Modo visível do Selenium */
+#selenium-container.selenium-visible {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 9999;
+    overflow-y: auto;
+    margin: 0;
+    border-radius: 0;
+}
+
+#selenium-container.selenium-visible .selenium-container {
+    margin: 20px auto;
+    max-width: 90%;
+    max-height: 90%;
+    background: white;
+    border-radius: 10px;
+}
+
+#selenium-container.selenium-visible .selenium-screenshot {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Botões coloridos para Selenium */
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.8em;
+}
+
+/* .btn-secondary, .btn-info e .btn-warning: definições consolidadas mais abaixo */
+
+/* Info Bar */
+.info-bar {
+    background: #f8f9fa;
+    padding: 15px 30px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Controls */
+.controls {
+    padding: 20px 30px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.buttons-main {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.buttons-config {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Botões */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: #e0a800;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #545b62;
+    transform: translateY(-1px);
+}
+
+.btn-dark {
+    background: #343a40;
+    color: white;
+}
+
+.btn-dark:hover:not(:disabled) {
+    background: #23272b;
+    transform: translateY(-1px);
+}
+
+/* Progress Bar */
+.progress-container {
+    padding: 0 30px;
+    margin-bottom: 20px;
+}
+
+/* Status bar wrapper: relativo para posicionamento absoluto do texto */
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Barra de progresso com largura fixa */
+.progress-bar {
+    width: 300px; /* largura fixa solicitada */
+    min-width: 300px;
+    height: 12px; /* ajustei para manter boa visibilidade */
+    background: linear-gradient(90deg, #f1f3f5, #e9ecef);
+    border-radius: 8px;
+    overflow: visible; /* permitir que o status-text posicionado fora da barra seja visível */
+    border: 1px solid rgba(0,0,0,0.06);
+    position: relative; /* para que o texto posicionado absoluto possa usar como referência */
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00a8ff 0%, #0066cc 50%, #004b9e 100%);
+    width: 0%;
+    transition: width 0.35s cubic-bezier(.25,.8,.25,1), box-shadow 0.2s;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.12), 0 4px 14px rgba(0,100,255,0.08);
+    border-radius: 6px;
+    position: relative; /* para o pseudo-elemento de brilho */
+    overflow: hidden; /* limitar shimmer à área preenchida */
+}
+
+/* Texto de status posicionado acima da barra, alinhado à direita */
+#status-text {
+    color: #ffffff; /* manter branco */
+    position: absolute;
+    right: 8px; /* pequeno espaçamento do canto direito da barra */
+    bottom: calc(100% + 6px); /* posiciona acima da barra com pequeno espaçamento */
+    font-weight: 600;
+    font-size: 0.95em;
+    pointer-events: none; /* permitir clicar na barra sem bloquear */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    z-index: 3; /* ficar acima de outros elementos */
+    white-space: nowrap;
+}
+
+/* efeito de 'shimmer' ao encher + animação de movimento quando monitorando */
+.progress-fill.fill-glow {
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.12), 0 6px 18px rgba(0,120,255,0.18);
+    /* camada de brilho animada sobre o gradiente principal */
+    background-image: linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.12) 100%), linear-gradient(90deg, #00a8ff 0%, #0066cc 50%, #004b9e 100%);
+    background-blend-mode: overlay;
+    background-size: 200% 100%, 100% 100%;
+    animation: progress-running 1.6s linear infinite;
+}
+
+@keyframes progress-running {
+    0% { background-position: -50% 0, 0 0; }
+    100% { background-position: 150% 0, 0 0; }
+}
+
+/* Shimmer overlay mais visível usando pseudo-elemento */
+.progress-fill.fill-glow::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -60%;
+    height: 100%;
+    width: 60%;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-20deg);
+    filter: blur(6px);
+    animation: shimmer 1.2s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes shimmer {
+    0% { left: -60%; }
+    100% { left: 160%; }
+}
+
+@keyframes progress-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.9; }
+}
+
+@keyframes progress-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Logs Container */
+.logs-container {
+    padding: 20px 30px;
+    height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.logs-header h3 {
+    color: #333;
+    font-size: 1.2em;
+}
+
+/* Logs Area */
+.logs-area {
+    flex: 1;
+    background: #1e1e1e;
+    color: #f8f8f2;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 20px;
+    border-radius: 8px;
+    overflow-y: auto;
+    border: 2px solid #333;
+    line-height: 1.4;
+}
+
+/* Log Entries */
+.log-entry {
+    margin-bottom: 5px;
+    word-wrap: break-word;
+}
+
+.log-entry.sistema { color: #50fa7b; }
+.log-entry.config { color: #8be9fd; }
+.log-entry.driver { color: #bd93f9; }
+.log-entry.login { color: #ffb86c; }
+.log-entry.monitor { color: #50fa7b; }
+.log-entry.verificacao { color: #f1fa8c; }
+.log-entry.erro { color: #ff5555; }
+.log-entry.simulacao { color: #ff79c6; }
+.log-entry.debug { color: #f1fa8c; }
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 14px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Separador */
+.separator {
+    width: 1px;
+    height: 30px;
+    background: #dee2e6;
+    margin: 0 10px;
+}
+
+/* Config Link */
+.config-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.config-link:hover {
+    text-decoration: underline;
+}
