@@ -5,6 +5,7 @@ usando uma div escondida para máxima compatibilidade
 """
 
 import os
+import json
 import time
 import threading
 import base64
@@ -42,18 +43,62 @@ class SeleniumEmbedded:
 
     def inicializar_driver(self, user_data_dir=None):
         """Inicializa o driver baseado no sistema operacional"""
+        # Prepara um perfil isolado com prefs que desativam o Password Manager
+        perfil_dir = user_data_dir or self._preparar_user_data_dir()
         if self._eh_macos():
             print("😎😎😎😎:ramon-feliz:😎😎😎😎")
-            return self._inicializar_chromium_macos()
+            return self._inicializar_chromium_macos(user_data_dir=perfil_dir)
         else:
-            return self._inicializar_chromium(user_data_dir)
+            return self._inicializar_chromium(user_data_dir=perfil_dir)
+
+    def _preparar_user_data_dir(self):
+        """Cria um diretório de perfil limpo com prefs anti-password-popup."""
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "tmp", "chrome-profile"))
+        default_dir = os.path.join(base_dir, "Default")
+        os.makedirs(default_dir, exist_ok=True)
+
+        # Preferences do perfil
+        prefs_path = os.path.join(default_dir, "Preferences")
+        prefs_data = {
+            "credentials_enable_service": False,
+            "profile": {
+                "password_manager_enabled": False,
+                "default_content_setting_values": {"images": 2}
+            },
+            "autofill": {
+                "enabled": False,
+                "profile_enabled": False,
+                "credit_card_enabled": False
+            },
+            "safebrowsing": {"enabled": False},
+            "password_manager_leak_detection": False
+        }
+        try:
+            with open(prefs_path, "w") as f:
+                json.dump(prefs_data, f)
+        except Exception:
+            pass
+
+        # Local State (algumas flags são lidas daqui)
+        local_state_path = os.path.join(base_dir, "Local State")
+        local_state = {
+            "safebrowsing": {"enabled": False},
+            "settings": {"password_leak_detection": False}
+        }
+        try:
+            with open(local_state_path, "w") as f:
+                json.dump(local_state, f)
+        except Exception:
+            pass
+
+        return base_dir
     
     def _configurar_opcoes_chrome(self, user_data_dir=None):
             chrome_options = Options()
             
             if self.modo_escondido:
                 # Modo headless para execução escondida
-                chrome_options.add_argument("--headless=new")
+                # chrome_options.add_argument("--headless=new")
                 self.log("👻 Modo headless ativado")
             else:
                 # Modo visual para debugging
@@ -87,14 +132,25 @@ class SeleniumEmbedded:
             chrome_options.add_argument("--disable-translate")
             chrome_options.add_argument("--disable-features=AutofillServerCommunication")
             chrome_options.add_argument("--disable-features=Translate")
-            chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+            chrome_options.add_experimental_option('excludeSwitches', ['enable-logging', 'enable-automation'])
             chrome_options.add_experimental_option('useAutomationExtension', False)
-            
+            chrome_options.add_argument("--no-first-run")
+            chrome_options.add_argument("--no-default-browser-check")
+            chrome_options.add_argument("--password-store=basic")
+            chrome_options.add_argument("--disable-component-update")
+            chrome_options.add_argument("--disable-features=PasswordManager,PasswordLeakDetection,PasswordCheck,PasswordChange,PasswordManagerOnboarding,AutofillServerCommunication,SafeBrowsingEnhancedProtection,OptimizationHints")
+            chrome_options.add_argument("--disable-save-password-bubble")
+
+
             # User data directory personalizado se fornecido
             if user_data_dir:
                 chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
                 self.log(f"📁 Usando diretório de dados: {user_data_dir}")
             
+            chrome_options.add_argument("--disable-save-password-bubble")
+            chrome_options.add_argument("--disable-notifications")
+            chrome_options.add_argument("--disable-popup-blocking")
+
             # Prefs para otimização
             prefs = {
                 "profile.default_content_setting_values": {
@@ -104,7 +160,14 @@ class SeleniumEmbedded:
                     "geolocation": 2,  # Bloquear localização
                     "notifications": 2,  # Bloquear notificações
                     "media_stream": 2,  # Bloquear câmera/microfone
+                    
                 },
+                "credentials_enable_service": False,
+                "profile.password_manager_enabled": False,
+                "autofill.profile_enabled": False,
+                "autofill.credit_card_enabled": False,
+                "safebrowsing.enabled": False,   # desliga o Safe Browsing
+                "password_leak_detection_enabled": False,  # desliga detecção de vazamento
                 "profile.managed_default_content_settings": {
                     "images": 2
                 }
@@ -161,7 +224,8 @@ class SeleniumEmbedded:
     
         # Configura o serviço do Chrome com gerenciamento automático do driver
         service = Service(ChromeDriverManager().install())
-        options = self._configurar_opcoes_chrome(modo_stealth)
+        # Corrige passagem de parâmetros: queremos aplicar prefs/flags e (opcionalmente) o user-data-dir
+        options = self._configurar_opcoes_chrome(user_data_dir=user_data_dir)
 
          # 🔒 FORÇA o caminho do Chrome no macOS
         options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"

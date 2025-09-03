@@ -100,8 +100,10 @@ class SeleniumManager:
                     
                     # Navega para aba de filas após login bem-sucedido
                     try:
-                        if popup_password_alert_visible(driver):
-                            fechar_popup_chrome(driver)
+                        # Fecha possíveis popups do Chrome (ex.: senha fraca/leak detection)
+                        drv = self.selenium_driver.driver
+                        if popup_password_alert_visible(drv):
+                            fechar_popup_chrome(drv)
                         from modules.rabbitmq import navegar_para_queues
                         self.logging_system.enviar_log_web("🔍 Navegando para aba de filas...", "INFO")
                         if navegar_para_queues(self.selenium_driver.driver):
@@ -133,6 +135,14 @@ class SeleniumManager:
                     'screenshot': None
                 }
             
+            # Fecha automaticamente o popup de senha fraca caso ainda apareça
+            try:
+                drv = self.selenium_driver.driver
+                if drv and popup_password_alert_visible(drv):
+                    fechar_popup_chrome(drv)
+            except Exception:
+                pass
+
             # Implementa lógica para obter estado do navegador
             url_atual = self.selenium_driver.driver.current_url if self.selenium_driver.driver else 'N/A'
             titulo_atual = self.selenium_driver.driver.title if self.selenium_driver.driver else 'N/A'
@@ -241,7 +251,53 @@ class SeleniumManager:
 
 def ax_tree(driver):
     # Lê a árvore de acessibilidade do Chrome (inclui UI do navegador)
+    try:
+        driver.execute_cdp_cmd("Accessibility.enable", {})
+    except Exception:
+        pass
     return driver.execute_cdp_cmd("Accessibility.getFullAXTree", {})
+
+def _ax_find_bounds_of_ok_like_buttons(driver):
+    """Procura no AX tree por botões com rótulo 'OK/Entendi/Fechar' e retorna centros (x,y)."""
+    try:
+        tree = ax_tree(driver)
+        nodes = tree.get("nodes", [])
+        centers = []
+        candidatos = ("ok", "entendi", "fechar")
+        for n in nodes:
+            role = (n.get("role", {}) or {}).get("value", "").lower()
+            if role not in ("button", "pushbutton"):
+                continue
+            name = ((n.get("name", {}) or {}).get("value", "") or "").strip().lower()
+            if name not in candidatos:
+                continue
+            # Extrai bounds do node via propriedade AX 'bounds'
+            props = n.get("properties", []) or []
+            bounds_val = None
+            for p in props:
+                if p.get("name") == "bounds":
+                    bounds_val = p.get("value", {}) or {}
+                    break
+            if isinstance(bounds_val, dict):
+                v = bounds_val.get("value", bounds_val)
+                # Suporta chaves variadas: x/y/width/height ou left/top/right/bottom
+                x = v.get("x")
+                y = v.get("y")
+                w = v.get("width")
+                h = v.get("height")
+                left = v.get("left")
+                top = v.get("top")
+                right = v.get("right")
+                bottom = v.get("bottom")
+                if x is not None and y is not None and w and h:
+                    cx, cy = int(x + w/2), int(y + h/2)
+                    centers.append((cx, cy))
+                elif None not in (left, top, right, bottom):
+                    cx, cy = int((left + right)/2), int((top + bottom)/2)
+                    centers.append((cx, cy))
+        return centers
+    except Exception:
+        return []
 
 def popup_password_alert_visible(driver):
     """
@@ -294,8 +350,32 @@ def press_key_cdp(driver, key, code, vk):
         "nativeVirtualKeyCode": vk
     })
 
+def click_point_cdp(driver, x, y):
+    try:
+        driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
+            "type": "mousePressed",
+            "x": int(x),
+            "y": int(y),
+            "button": "left",
+            "clickCount": 1
+        })
+        driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
+            "type": "mouseReleased",
+            "x": int(x),
+            "y": int(y),
+            "button": "left",
+            "clickCount": 1
+        })
+        return True
+    except Exception:
+        return False
+
 def fechar_popup_chrome(driver, tentativas=2, espera=0.4):
     import time
+    try:
+        driver.execute_cdp_cmd("Page.bringToFront", {})
+    except Exception:
+        pass
     for _ in range(tentativas):
         # Enter fecha o diálogo, Esc também costuma funcionar
         press_key_cdp(driver, "Enter", "Enter", 13)
@@ -306,4 +386,28 @@ def fechar_popup_chrome(driver, tentativas=2, espera=0.4):
         time.sleep(espera)
         if not popup_password_alert_visible(driver):
             return True
+        # Tenta clicar diretamente no(s) botão(ões) detectados via AX tree
+        for (x, y) in _ax_find_bounds_of_ok_like_buttons(driver):
+            click_point_cdp(driver, x, y)
+            time.sleep(espera)
+            if not popup_password_alert_visible(driver):
+                return True
+    # Fallback: tenta clicar em posições prováveis do botão OK no centro do diálogo
+    try:
+        size = driver.get_window_size()
+        w, h = size.get("width", 1200), size.get("height", 800)
+        cx, cy = w // 2, h // 2
+        candidatos = [
+            (cx + 140, cy + 110),
+            (cx + 110, cy + 120),
+            (cx + 160, cy + 130),
+            (cx + 120, cy + 140),
+        ]
+        for (x, y) in candidatos:
+            click_point_cdp(driver, x, y)
+            time.sleep(espera)
+            if not popup_password_alert_visible(driver):
+                return True
+    except Exception:
+        pass
     return not popup_password_alert_visible(driver)
