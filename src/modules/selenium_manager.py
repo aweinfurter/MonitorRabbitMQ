@@ -100,6 +100,8 @@ class SeleniumManager:
                     
                     # Navega para aba de filas após login bem-sucedido
                     try:
+                        if popup_password_alert_visible(driver):
+                            fechar_popup_chrome(driver)
                         from modules.rabbitmq import navegar_para_queues
                         self.logging_system.enviar_log_web("🔍 Navegando para aba de filas...", "INFO")
                         if navegar_para_queues(self.selenium_driver.driver):
@@ -234,3 +236,74 @@ class SeleniumManager:
         except Exception as e:
             self.logging_system.enviar_log_web(f"⚠️ Erro ao verificar login: {e}", "WARNING")
             return False
+
+#########################################################################
+
+def ax_tree(driver):
+    # Lê a árvore de acessibilidade do Chrome (inclui UI do navegador)
+    return driver.execute_cdp_cmd("Accessibility.getFullAXTree", {})
+
+def popup_password_alert_visible(driver):
+    """
+    Procura por um diálogo de alerta do Chrome (ex.: 'Mude sua senha') e/ou
+    um botão 'OK' em um nó com role de dialog/alertdialog.
+    Retorna True/False.
+    """
+    try:
+        tree = ax_tree(driver)
+        nodes = tree.get("nodes", [])
+        has_dialog = False
+        has_ok_btn = False
+
+        for n in nodes:
+            role = (n.get("role", {}) or {}).get("value", "")
+            name = (n.get("name", {}) or {}).get("value", "")
+            # Normalmente o banner tem role 'dialog' ou 'alertdialog'
+            if role in ("dialog", "alertdialog"):
+                # Heurísticas de títulos comuns
+                if any(txt in (name or "").lower() for txt in [
+                    "mude sua senha", "change your password", "senha", "password"
+                ]):
+                    has_dialog = True
+
+            if n.get("role", {}).get("value") in ("button", "pushbutton"):
+                btn_name = (n.get("name", {}) or {}).get("value", "")
+                if btn_name and btn_name.strip().lower() in ("ok", "entendi", "fechar"):
+                    has_ok_btn = True
+
+        return has_dialog or (has_ok_btn and any(
+            (node.get("role", {}).get("value") in ("dialog", "alertdialog"))
+            for node in nodes
+        ))
+    except Exception:
+        return False
+
+def press_key_cdp(driver, key, code, vk):
+    driver.execute_cdp_cmd("Input.dispatchKeyEvent", {
+        "type": "keyDown",
+        "key": key,
+        "code": code,
+        "windowsVirtualKeyCode": vk,
+        "nativeVirtualKeyCode": vk
+    })
+    driver.execute_cdp_cmd("Input.dispatchKeyEvent", {
+        "type": "keyUp",
+        "key": key,
+        "code": code,
+        "windowsVirtualKeyCode": vk,
+        "nativeVirtualKeyCode": vk
+    })
+
+def fechar_popup_chrome(driver, tentativas=2, espera=0.4):
+    import time
+    for _ in range(tentativas):
+        # Enter fecha o diálogo, Esc também costuma funcionar
+        press_key_cdp(driver, "Enter", "Enter", 13)
+        time.sleep(espera)
+        if not popup_password_alert_visible(driver):
+            return True
+        press_key_cdp(driver, "Escape", "Escape", 27)
+        time.sleep(espera)
+        if not popup_password_alert_visible(driver):
+            return True
+    return not popup_password_alert_visible(driver)
