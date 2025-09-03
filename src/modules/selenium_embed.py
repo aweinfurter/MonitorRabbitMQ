@@ -166,7 +166,7 @@ class SeleniumEmbedded:
          # 🔒 FORÇA o caminho do Chrome no macOS
         options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     
-        driver = webdriver.Chrome(service=service, options=options)
+        self.driver = webdriver.Chrome(service=service, options=options)
     
         if modo_stealth:
             print("✅ Chrome iniciado em modo STEALTH - 100% invisível!")
@@ -177,7 +177,7 @@ class SeleniumEmbedded:
         self.driver.set_page_load_timeout(60)
         self.driver.set_window_size(1920, 1080)
         self.is_running = True
-        
+
         return True
 
     def navegar_para_url(self, url):
