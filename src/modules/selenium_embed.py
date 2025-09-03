@@ -161,7 +161,7 @@ class SeleniumEmbedded:
     
         # Configura o serviço do Chrome com gerenciamento automático do driver
         service = Service(ChromeDriverManager().install())
-        options = self.configurar_opcoes_chrome(modo_stealth)
+        options = self._configurar_opcoes_chrome(modo_stealth)
     
         driver = webdriver.Chrome(service=service, options=options)
     
