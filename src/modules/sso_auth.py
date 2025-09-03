@@ -101,6 +101,14 @@ def fazer_login_sso_automatico(driver, sso_username, sso_password, mfa_token=Non
 
              # Aguarda um pouco para o redirecionamento e então verifica MFA
             time.sleep(1)
+
+            empresa_xpath = "//*[ (self::div[@class='item-name'] or self::span[@class='tooltip-text']) and normalize-space(text())='TOTVS S/A']"
+            if driver.find_elements(By.XPATH, empresa_xpath):
+                print("🏢 Tela de seleção de empresa detectada...")
+                selecionar_empresa_e_logar(driver, "TOTVS S/A")
+                print("✅ Empresa selecionada e login finalizado!")
+            else:
+                print("ℹ️ Nenhuma seleção de empresa necessária")
             
             # Verifica se apareceu campo de MFA e preenche automaticamente
             if mfa_token:
@@ -265,3 +273,13 @@ def detectar_e_preencher_mfa(driver, mfa_token, timeout=10):
     except Exception as e:
         print(f"⚠️ Erro ao processar MFA: {e}")
         return False
+    
+def selecionar_empresa_e_logar(driver, empresa="TOTVS S/A"):
+    wait = WebDriverWait(driver, 10)
+
+    xpath_empresa = f"//*[ (self::div[@class='item-name'] or self::span[@class='tooltip-text']) and normalize-space(text())='{empresa}']"
+    elemento = wait.until(EC.element_to_be_clickable((By.XPATH, xpath_empresa)))
+    elemento.click()
+
+    botao_entrar = wait.until(EC.element_to_be_clickable((By.ID, "login-select")))
+    botao_entrar.click()
