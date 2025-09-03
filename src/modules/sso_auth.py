@@ -276,10 +276,27 @@ def detectar_e_preencher_mfa(driver, mfa_token, timeout=10):
     
 def selecionar_empresa_e_logar(driver, empresa="TOTVS S/A"):
     wait = WebDriverWait(driver, 10)
+    print(f"🏢 Selecionando empresa: {empresa}")
 
-    xpath_empresa = f"//*[ (self::div[@class='item-name'] or self::span[@class='tooltip-text']) and normalize-space(text())='{empresa}']"
-    elemento = wait.until(EC.element_to_be_clickable((By.XPATH, xpath_empresa)))
+    try:
+        # Primeiro tenta o div
+        elemento = wait.until(
+            EC.element_to_be_clickable((By.XPATH, f"//div[@class='item-name' and normalize-space(text())='{empresa}']"))
+        )
+        print("✅ Empresa encontrada no div")
+    except:
+        # Se não achar, tenta o span
+        elemento = wait.until(
+            EC.element_to_be_clickable((By.XPATH, f"//span[@class='tooltip-text' and normalize-space(text())='{empresa}']"))
+        )
+        print("✅ Empresa encontrada no span")
+
+    # Clica no item encontrado
     elemento.click()
 
-    botao_entrar = wait.until(EC.element_to_be_clickable((By.ID, "login-select")))
+    # Agora clica no botão "Entrar"
+    botao_entrar = wait.until(
+        EC.element_to_be_clickable((By.ID, "login-select"))
+    )
     botao_entrar.click()
+    print("✅ Botão 'Entrar' clicado")
