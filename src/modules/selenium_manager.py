@@ -100,7 +100,11 @@ class SeleniumManager:
                     
                     # Navega para aba de filas após login bem-sucedido
                     try:
-                        from modules.rabbitmq import navegar_para_queues
+                        from modules.rabbitmq import navegar_para_queues, definir_autorefresh
+                        if definir_autorefresh(self.selenium_driver.driver):
+                            self.logging_system.enviar_log_web("✅ Auto-refresh definido para 30 segundos", "SUCCESS")
+                        else:
+                            self.logging_system.enviar_log_web("⚠️ Falha ao definir auto-refresh", "WARNING")
                         self.logging_system.enviar_log_web("🔍 Navegando para aba de filas...", "INFO")
                         if navegar_para_queues(self.selenium_driver.driver):
                             self.logging_system.enviar_log_web("✅ Navegação para filas concluída!", "SUCCESS")
