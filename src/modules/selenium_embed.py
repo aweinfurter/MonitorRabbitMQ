@@ -16,8 +16,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
+class ChromeDriverError(Exception):
+    """Exceção específica para problemas com ChromeDriver"""
+    pass
+
+class ChromeDriverError(Exception):
+    """Exceção específica para problemas com ChromeDriver"""
+    pass
+
 class SeleniumEmbedded:
     """Classe para controlar Selenium de forma embarcada na aplicação web"""
+    
+    # Constantes para nomes de arquivos
+    CHROMEDRIVER_EXE = "chromedriver.exe"
+    CHROMEDRIVER = "chromedriver"
     
     def __init__(self, modo_escondido=False, callback_log=None):
         self.driver = None
@@ -30,94 +42,315 @@ class SeleniumEmbedded:
         """Envia log para callback"""
         self.callback_log(f"[Selenium] {mensagem}", categoria)
     
+    def _configurar_chrome_options(self, user_data_dir=None):
+        """Configura as opções do Chrome"""
+        chrome_options = Options()
+        
+        if self.modo_escondido:
+            chrome_options.add_argument("--headless=new")
+            self.log("👻 Modo headless ativado")
+        else:
+            chrome_options.add_argument("--start-maximized")
+            self.log("🖥️ Modo visual ativado")
+        
+        # Configurações comuns para máxima compatibilidade
+        args_comuns = [
+            "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu",
+            "--disable-extensions", "--disable-plugins", "--disable-images",
+            "--disable-javascript-harmony-shipping", "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding", "--disable-backgrounding-occluded-windows",
+            "--disable-ipc-flooding-protection", "--disable-features=TranslateUI",
+            "--disable-features=VizDisplayCompositor", "--remote-debugging-port=0",
+            "--disable-logging", "--disable-dev-tools-console", "--silent",
+            "--log-level=3", "--disable-software-rasterizer",
+            "--disable-background-networking", "--disable-sync", "--disable-translate",
+            "--disable-features=AutofillServerCommunication", "--disable-features=Translate"
+        ]
+        
+        for arg in args_comuns:
+            chrome_options.add_argument(arg)
+        
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        
+        if user_data_dir:
+            chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+            self.log(f"📁 Usando diretório de dados: {user_data_dir}")
+        
+        # Prefs para otimização
+        prefs = {
+            "profile.default_content_setting_values": {
+                "images": 2, "plugins": 2, "popups": 2,
+                "geolocation": 2, "notifications": 2, "media_stream": 2,
+            },
+            "profile.managed_default_content_settings": {"images": 2}
+        }
+        chrome_options.add_experimental_option("prefs", prefs)
+        
+        return chrome_options
+    
+    def _tentar_chromedriver_manager(self, chrome_options):
+        """Tenta usar ChromeDriverManager com timeout"""
+        try:
+            self.log("🔄 Tentativa 1: ChromeDriverManager com timeout...")
+            
+            import socket
+            socket.setdefaulttimeout(30)
+            
+            service = Service(ChromeDriverManager().install())
+            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+            self.log("✅ Driver instalado automaticamente via ChromeDriverManager")
+            return True
+            
+        except Exception as e:
+            self.log(f"⚠️ Falha no ChromeDriverManager: {e}")
+            return False
+    
+    def _tentar_chrome_padrao(self, chrome_options):
+        """Tenta usar Chrome padrão do sistema"""
+        try:
+            self.log("🔄 Tentativa 2: Chrome padrão do sistema...")
+            self.driver = webdriver.Chrome(options=chrome_options)
+            self.log("✅ Usando Chrome padrão do sistema")
+            return True
+            
+        except Exception as e:
+            self.log(f"⚠️ Falha no Chrome padrão: {e}")
+            return False
+    
+    def _obter_caminhos_chromedriver(self):
+        """Retorna lista de caminhos comuns para chromedriver"""
+        return [
+            self.CHROMEDRIVER_EXE,
+            self.CHROMEDRIVER,
+            r"C:\Program Files\Google\Chrome\Application\chromedriver.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe",
+            r"C:\Windows\System32\chromedriver.exe",
+            "/usr/local/bin/chromedriver",
+            "/usr/bin/chromedriver",
+            os.path.join(os.path.expanduser("~"), "chromedriver"),
+            os.path.join(os.path.dirname(__file__), self.CHROMEDRIVER_EXE),
+            os.path.join(os.path.dirname(__file__), self.CHROMEDRIVER)
+        ]
+    
+    def _tentar_caminhos_comuns(self, chrome_options):
+        """Busca chromedriver em caminhos comuns"""
+        try:
+            self.log("🔄 Tentativa 3: Buscando chromedriver em caminhos padrão...")
+            
+            caminhos_comuns = self._obter_caminhos_chromedriver()
+            
+            for caminho in caminhos_comuns:
+                try:
+                    if os.path.exists(caminho) or caminho in [self.CHROMEDRIVER_EXE, self.CHROMEDRIVER]:
+                        service = Service(caminho)
+                        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                        self.log(f"✅ ChromeDriver encontrado em: {caminho}")
+                        return True
+                except OSError:
+                    continue
+                    
+            self.log("⚠️ ChromeDriver não encontrado em caminhos padrão")
+            return False
+            
+        except Exception as e:
+            self.log(f"⚠️ Erro na busca de chromedriver: {e}")
+            return False
+    
+    def _tentar_download_manual(self, chrome_options):
+        """Tenta download manual com versões específicas"""
+        try:
+            self.log("🔄 Tentativa 4: Download manual do ChromeDriver...")
+            
+            versoes_teste = ["114.0.5735.90", "113.0.5672.63", "112.0.5615.49"]
+            
+            for versao in versoes_teste:
+                try:
+                    self.log(f"   Tentando versão {versao}...")
+                    driver_path = ChromeDriverManager(version=versao).install()
+                    service = Service(driver_path)
+                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                    self.log(f"✅ ChromeDriver versão {versao} funcionou!")
+                    return True
+                except OSError:
+                    continue
+                    
+            return False
+            
+        except Exception as e:
+            self.log(f"⚠️ Falha no download manual: {e}")
+            return False
+    
+    def _tentar_modo_compatibilidade(self):
+        """Modo compatibilidade máxima com configurações mínimas"""
+        try:
+            self.log("🔄 Tentativa 5: Modo compatibilidade máxima...")
+            
+            chrome_options_simples = Options()
+            if self.modo_escondido:
+                chrome_options_simples.add_argument("--headless")
+            chrome_options_simples.add_argument("--no-sandbox")
+            chrome_options_simples.add_argument("--disable-dev-shm-usage")
+            
+            self.driver = webdriver.Chrome(options=chrome_options_simples)
+            self.log("✅ Modo compatibilidade máxima funcionou!")
+            return True
+            
+        except Exception as e:
+            self.log(f"⚠️ Falha no modo compatibilidade: {e}")
+            return False
+    
+    def _verificar_chrome_instalado(self):
+        """Verifica se o Chrome está instalado"""
+        import subprocess
+        
+        comandos_teste = [
+            (['google-chrome', '--version'], "Chrome Linux"),
+            (['chrome', '--version'], "Chrome"),
+        ]
+        
+        for comando, nome in comandos_teste:
+            try:
+                result = subprocess.run(comando, capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    return f"✅ {nome}: {result.stdout.strip()}"
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                continue
+        
+        # Verifica Chrome no Windows
+        chrome_paths = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+        ]
+        
+        for path in chrome_paths:
+            if os.path.exists(path):
+                return f"✅ Chrome Windows: {path}"
+        
+        return "❌ Google Chrome não encontrado"
+    
+    def _verificar_conectividade(self):
+        """Verifica conectividade com repositório ChromeDriver"""
+        try:
+            import requests
+            response = requests.get('https://chromedriver.chromium.org/', timeout=10)
+            if response.status_code == 200:
+                return "✅ Conectividade com repositório ChromeDriver: OK"
+            return f"⚠️ Conectividade com repositório ChromeDriver: HTTP {response.status_code}"
+        except Exception as e:
+            return f"❌ Sem conectividade com repositório ChromeDriver: {e}"
+    
+    def _verificar_permissoes(self):
+        """Verifica permissões de escrita"""
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=True) as tmp:
+                tmp.write(b"teste")
+            return "✅ Permissões de escrita: OK"
+        except Exception as e:
+            return f"❌ Problemas de permissão de escrita: {e}"
+    
+    def _verificar_drivers_existentes(self):
+        """Verifica se há drivers existentes"""
+        caminhos = self._obter_caminhos_chromedriver()
+        drivers_encontrados = [c for c in caminhos if os.path.exists(c)]
+        
+        if drivers_encontrados:
+            return f"✅ ChromeDrivers encontrados: {', '.join(drivers_encontrados)}"
+        return "⚠️ Nenhum ChromeDriver encontrado em caminhos padrão"
+    
+    def _verificar_variaveis_ambiente(self):
+        """Verifica variáveis de ambiente relacionadas"""
+        resultados = []
+        env_vars = ['PATH', 'CHROME_EXECUTABLE_PATH', 'CHROMEDRIVER_PATH']
+        
+        for var in env_vars:
+            valor = os.environ.get(var)
+            if valor:
+                valor_display = f"{valor[:100]}..." if len(valor) > 100 else valor
+                resultados.append(f"ℹ️ {var}: {valor_display}")
+        
+        return resultados
+    
+    def diagnosticar_ambiente(self):
+        """Diagnostica o ambiente para troubleshooting de problemas com ChromeDriver"""
+        diagnostico = []
+        
+        try:
+            # Verificações individuais
+            diagnostico.append(self._verificar_chrome_instalado())
+            diagnostico.append(self._verificar_conectividade())
+            diagnostico.append(self._verificar_permissoes())
+            diagnostico.append(self._verificar_drivers_existentes())
+            diagnostico.extend(self._verificar_variaveis_ambiente())
+            
+        except Exception as e:
+            diagnostico.append(f"❌ Erro durante diagnóstico: {e}")
+        
+        return diagnostico
+    
+    def _categorizar_diagnostico(self, diag):
+        """Categoriza mensagem de diagnóstico"""
+        if "❌" in diag:
+            return "ERROR"
+        elif "⚠️" in diag:
+            return "WARNING"
+        else:
+            return "INFO"
+    
+    def exibir_diagnostico(self):
+        """Exibe diagnóstico completo do ambiente"""
+        self.log("🔍 INICIANDO DIAGNÓSTICO DO AMBIENTE...")
+        diagnosticos = self.diagnosticar_ambiente()
+        
+        for diag in diagnosticos:
+            categoria = self._categorizar_diagnostico(diag)
+            self.log(diag, categoria)
+        
+        self.log("🔍 DIAGNÓSTICO CONCLUÍDO")
+        return diagnosticos
+    
     def inicializar_driver(self, user_data_dir=None):
         """Inicializa o driver Chrome com as configurações apropriadas"""
         try:
             self.log("🔧 Inicializando driver Chrome...")
             
-            chrome_options = Options()
+            chrome_options = self._configurar_chrome_options(user_data_dir)
             
-            if self.modo_escondido:
-                # Modo headless para execução escondida
-                chrome_options.add_argument("--headless=new")
-                self.log("👻 Modo headless ativado")
+            # Tenta diferentes estratégias até uma funcionar
+            estrategias = [
+                lambda: self._tentar_chromedriver_manager(chrome_options),
+                lambda: self._tentar_chrome_padrao(chrome_options),
+                lambda: self._tentar_caminhos_comuns(chrome_options),
+                lambda: self._tentar_download_manual(chrome_options),
+                lambda: self._tentar_modo_compatibilidade(),
+            ]
+            
+            for i, estrategia in enumerate(estrategias, 1):
+                if estrategia():
+                    break
             else:
-                # Modo visual para debugging
-                chrome_options.add_argument("--start-maximized")
-                self.log("🖥️ Modo visual ativado")
+                # Se todas as estratégias falharam, executa diagnóstico
+                self.log("❌ FALHA CRÍTICA: Todas as estratégias falharam!", "ERROR")
+                self.log("🔍 Executando diagnóstico automático...", "INFO")
+                self.exibir_diagnostico()
+                
+                raise ChromeDriverError(
+                    "Não foi possível inicializar o ChromeDriver com nenhuma das estratégias disponíveis. "
+                    "Verifique se o Google Chrome está instalado e se não há bloqueios de antivírus/firewall. "
+                    "Consulte o diagnóstico acima para mais detalhes."
+                )
             
-            # Configurações comuns para máxima compatibilidade
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--disable-extensions")
-            chrome_options.add_argument("--disable-plugins")
-            chrome_options.add_argument("--disable-images")  # Acelera carregamento
-            chrome_options.add_argument("--disable-javascript-harmony-shipping")
-            chrome_options.add_argument("--disable-background-timer-throttling")
-            chrome_options.add_argument("--disable-renderer-backgrounding")
-            chrome_options.add_argument("--disable-backgrounding-occluded-windows")
-            chrome_options.add_argument("--disable-ipc-flooding-protection")
-            chrome_options.add_argument("--disable-features=TranslateUI")
-            chrome_options.add_argument("--disable-features=VizDisplayCompositor")
-            chrome_options.add_argument("--remote-debugging-port=0")  # Porta dinâmica
+            # Configurações finais do driver
+            if self.driver:
+                self.driver.implicitly_wait(10)
+                self.driver.set_page_load_timeout(60)
+                self.driver.set_window_size(1920, 1080)
+                self.is_running = True
+                self.log("🎯 Driver Chrome inicializado com sucesso!")
+                return True
             
-            # Suprime avisos desnecessários do Chrome
-            chrome_options.add_argument("--disable-logging")
-            chrome_options.add_argument("--disable-dev-tools-console")
-            chrome_options.add_argument("--silent")
-            chrome_options.add_argument("--log-level=3")  # FATAL apenas
-            chrome_options.add_argument("--disable-software-rasterizer")
-            chrome_options.add_argument("--disable-background-networking")
-            chrome_options.add_argument("--disable-sync")
-            chrome_options.add_argument("--disable-translate")
-            chrome_options.add_argument("--disable-features=AutofillServerCommunication")
-            chrome_options.add_argument("--disable-features=Translate")
-            chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
-            chrome_options.add_experimental_option('useAutomationExtension', False)
-            
-            # User data directory personalizado se fornecido
-            if user_data_dir:
-                chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
-                self.log(f"📁 Usando diretório de dados: {user_data_dir}")
-            
-            # Prefs para otimização
-            prefs = {
-                "profile.default_content_setting_values": {
-                    "images": 2,  # Bloquear imagens
-                    "plugins": 2,  # Bloquear plugins
-                    "popups": 2,  # Bloquear popups
-                    "geolocation": 2,  # Bloquear localização
-                    "notifications": 2,  # Bloquear notificações
-                    "media_stream": 2,  # Bloquear câmera/microfone
-                },
-                "profile.managed_default_content_settings": {
-                    "images": 2
-                }
-            }
-            chrome_options.add_experimental_option("prefs", prefs)
-            
-            # Instala e configura o ChromeDriver automaticamente
-            try:
-                service = Service(ChromeDriverManager().install())
-                self.driver = webdriver.Chrome(service=service, options=chrome_options)
-                self.log("✅ Driver instalado automaticamente via ChromeDriverManager")
-            except Exception as e:
-                self.log(f"⚠️ Falha no ChromeDriverManager: {e}")
-                # Fallback para Chrome padrão do sistema
-                self.driver = webdriver.Chrome(options=chrome_options)
-                self.log("✅ Usando Chrome padrão do sistema")
-            
-            # Configurações do driver
-            self.driver.implicitly_wait(10)
-            self.driver.set_page_load_timeout(60)
-            
-            # Definir tamanho da janela mesmo em headless para screenshots
-            self.driver.set_window_size(1920, 1080)
-            
-            self.is_running = True
-            self.log("🎯 Driver Chrome inicializado com sucesso!")
-            return True
+            return False
             
         except Exception as e:
             self.log(f"❌ Erro ao inicializar driver: {e}", "ERROR")
@@ -305,7 +538,7 @@ class SeleniumEmbedded:
             self.atualizar_estado()
             return True
             
-        except Exception as e:
+        except Exception:
             self.log(f"⏰ Timeout aguardando elemento: {value}", "WARNING")
             return False
     
