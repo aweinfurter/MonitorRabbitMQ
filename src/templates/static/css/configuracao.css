@@ -249,6 +249,31 @@ body {
     margin-top: 30px;
 }
 
+/* Campos de senha com toggle */
+.input-password {
+    position: relative;
+}
+
+.input-password input[type="password"],
+.input-password input[type="text"] {
+    padding-right: 45px;
+}
+
+.input-password .toggle-password {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    cursor: pointer;
+    color: #666;
+    font-size: 16px;
+    transition: color 0.3s ease;
+    z-index: 1;
+}
+
+.input-password .toggle-password:hover {
+    color: #007bff;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .main-layout {

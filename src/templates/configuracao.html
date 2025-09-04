@@ -242,10 +242,11 @@
                             </div>
                             
                             <!-- Senha SSO -->
-                            <div class="form-group">
+                            <div class="form-group input-password">
                                 <label for="sso_password">Senha SSO</label>
                                 <input type="password" id="sso_password" name="sso_password" 
                                        value="{{ config.get('sso_password', '') }}">
+                                <i class="fas fa-eye toggle-password" data-target="sso_password"></i>
                             </div>
                             
                             <!-- Token MFA -->
@@ -291,10 +292,11 @@
                             </div>
                             
                             <!-- Senha RabbitMQ -->
-                            <div class="form-group">
+                            <div class="form-group input-password">
                                 <label for="rabbitmq_password">Senha RabbitMQ</label>
                                 <input type="password" id="rabbitmq_password" name="rabbitmq_password" 
                                        value="{{ config.get('rabbitmq_password', '') }}">
+                                <i class="fas fa-eye toggle-password" data-target="rabbitmq_password"></i>
                             </div>
                             
                             <!-- Regex Filtro -->

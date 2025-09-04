@@ -99,14 +99,15 @@ class SeleniumEmbedded:
             
             # Instala e configura o ChromeDriver automaticamente
             try:
-                service = Service(ChromeDriverManager().install())
-                self.driver = webdriver.Chrome(service=service, options=chrome_options)
-                self.log("✅ Driver instalado automaticamente via ChromeDriverManager")
+                self.driver = webdriver.Chrome(options=chrome_options)
+                self.log("✅ Usando Chrome padrão do sistema")            
             except Exception as e:
                 self.log(f"⚠️ Falha no ChromeDriverManager: {e}")
                 # Fallback para Chrome padrão do sistema
-                self.driver = webdriver.Chrome(options=chrome_options)
-                self.log("✅ Usando Chrome padrão do sistema")
+                service = Service(ChromeDriverManager().install())
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                self.log("✅ Driver instalado automaticamente via ChromeDriverManager")
+                
             
             # Configurações do driver
             self.driver.implicitly_wait(10)
