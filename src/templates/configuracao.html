@@ -30,6 +30,13 @@
                                 <!-- Time Saídas -->
                                 <div class="filas-group">
                                     <h4 style="color: #6f42c1; margin: 15px 0 10px 0;"><i class="fas fa-truck-loading"></i> Time Saídas</h4>
+                                                                        
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fila_wms_atividade_extra" name="filas_selecionadas" 
+                                               value="wms-atividade-extra-errors.wms-atividade-extra-errors"
+                                               {{ 'checked' if 'wms-atividade-extra-errors.wms-atividade-extra-errors' in config.filas_monitoradas else '' }}>
+                                        <label for="fila_wms_atividade_extra">WMS Atividade Extra Errors</label>
+                                    </div>
                                     
                                     <div class="checkbox-item">
                                         <input type="checkbox" id="fila_wms_conf_exp" name="filas_selecionadas" 
@@ -77,13 +84,6 @@
                                 <!-- Time Entradas -->
                                 <div class="filas-group">
                                     <h4 style="color: #28a745; margin: 15px 0 10px 0;"><i class="fas fa-boxes"></i> Time Entradas</h4>
-                                    
-                                    <div class="checkbox-item">
-                                        <input type="checkbox" id="fila_wms_atividade_extra" name="filas_selecionadas" 
-                                               value="wms-atividade-extra-errors.wms-atividade-extra-errors"
-                                               {{ 'checked' if 'wms-atividade-extra-errors.wms-atividade-extra-errors' in config.filas_monitoradas else '' }}>
-                                        <label for="fila_wms_atividade_extra">WMS Atividade Extra Errors</label>
-                                    </div>
                                     
                                     <div class="checkbox-item">
                                         <input type="checkbox" id="fila_etiqueta_query_entradas" name="filas_selecionadas" 

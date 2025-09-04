@@ -134,6 +134,7 @@ sso_config.json
 *.log
 screenshots/
 temp/
+tmp/
 
 # Selenium
 *.pkl
