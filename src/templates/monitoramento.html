@@ -33,19 +33,23 @@
         <div class="controls">
             <div class="buttons-main">
                 <button id="btn-real" class="btn btn-success" onclick="iniciarMonitoramento('real')">
-                    <i class="fas fa-play"></i> Monitoramento
+                    <i class="fas fa-play"></i>
+                    <span class="label-monitoramento"> Monitoramento</span>
                 </button>
                 
                 <button id="btn-debug-terminal" class="btn btn-warning" onclick="alternarDebugTerminal()" title="Alterna logs no terminal (modo debug)">
-                    <i class="fas fa-terminal"></i> Debug Terminal
+                    <i class="fas fa-terminal"></i> 
+                    <span class="label-debug">Debug Terminal</span>
                 </button>
                 
                 <button id="btn-simulacao" class="btn btn-primary" onclick="testarAlertas()" title="Testa se os alertas estão funcionando">
-                    <i class="fas fa-bell"></i> Teste Alertas
+                    <i class="fas fa-bell"></i> 
+                    <span class="label-simulacao">Teste Alertas</span>
                 </button>
                 
                 <button id="btn-encerrar" class="btn btn-danger" onclick="encerrarSistema()" title="Encerra o sistema completamente">
-                    <i class="fas fa-skull-crossbones"></i> Encerrar Sistema
+                    <i class="fas fa-skull-crossbones"></i> 
+                    <span class="label-encerrar">Encerrar Sistema</span>
                 </button>
             </div>
             
