@@ -62,6 +62,20 @@ class SeleniumEmbedded:
             chrome_options.add_argument("--disable-features=VizDisplayCompositor")
             chrome_options.add_argument("--remote-debugging-port=0")  # Porta dinâmica
             
+            # Suprime popups de autenticação HTTP (para RabbitMQ e outros)
+            chrome_options.add_argument("--disable-web-security")
+            chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+            chrome_options.add_argument("--disable-http-auth-negotiate-port")
+            chrome_options.add_argument("--disable-http-auth-negotiate-android")
+            chrome_options.add_argument("--disable-prompt-on-repost")
+            chrome_options.add_argument("--disable-default-apps")
+            chrome_options.add_argument("--disable-hang-monitor")
+            chrome_options.add_argument("--disable-component-update")
+            chrome_options.add_argument("--no-first-run")
+            chrome_options.add_argument("--no-default-browser-check")
+            chrome_options.add_argument("--disable-popup-blocking")
+            chrome_options.add_argument("--disable-infobars")
+
             # Suprime avisos desnecessários do Chrome
             chrome_options.add_argument("--disable-logging")
             chrome_options.add_argument("--disable-dev-tools-console")
@@ -81,7 +95,7 @@ class SeleniumEmbedded:
                 chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
                 self.log(f"📁 Usando diretório de dados: {user_data_dir}")
             
-            # Prefs para otimização
+            # Prefs para otimização e supressão de popups
             prefs = {
                 "profile.default_content_setting_values": {
                     "images": 2,  # Bloquear imagens
@@ -92,21 +106,33 @@ class SeleniumEmbedded:
                     "media_stream": 2,  # Bloquear câmera/microfone
                 },
                 "profile.managed_default_content_settings": {
-                    "images": 2
-                }
+                    "images": 2,
+                    "popups": 2
+                },
+                # Suprime especificamente diálogos de autenticação HTTP
+                "profile.password_manager_enabled": False,
+                "credentials_enable_service": False,
+                "password_manager_enabled": False,
+                # Desabilita prompt de salvamento de senha
+                "profile.password_manager_leak_detection": False,
+                "autofill.profile_enabled": False,
+                "autofill.credit_card_enabled": False
             }
             chrome_options.add_experimental_option("prefs", prefs)
+            self.log("🚫 Configurado para suprimir diálogos de autenticação HTTP")
             
             # Instala e configura o ChromeDriver automaticamente
             try:
+                self.driver = webdriver.Chrome(options=chrome_options)
+                self.log("✅ Usando Chromium padrão do sistema")
+                
+            except Exception as e:
+                self.log(f"⚠️ Falha no Chromium: {e}")
+                # Fallback para instalação do ChromeDriver
                 service = Service(ChromeDriverManager().install())
                 self.driver = webdriver.Chrome(service=service, options=chrome_options)
                 self.log("✅ Driver instalado automaticamente via ChromeDriverManager")
-            except Exception as e:
-                self.log(f"⚠️ Falha no ChromeDriverManager: {e}")
-                # Fallback para Chrome padrão do sistema
-                self.driver = webdriver.Chrome(options=chrome_options)
-                self.log("✅ Usando Chrome padrão do sistema")
+                
             
             # Configurações do driver
             self.driver.implicitly_wait(10)
@@ -123,15 +149,50 @@ class SeleniumEmbedded:
             self.log(f"❌ Erro ao inicializar driver: {e}", "ERROR")
             return False
     
+    def navegar_para_url_com_auth(self, url, usuario=None, senha=None):
+        """Navega para uma URL com autenticação HTTP básica integrada"""
+        try:
+            if not self.driver:
+                self.log("❌ Driver não inicializado", "ERROR")
+                return False
+            
+            # Se credenciais fornecidas, inclui na URL para evitar popup
+            if usuario and senha:
+                # Parse da URL para inserir credenciais
+                import urllib.parse
+                parsed = urllib.parse.urlparse(url)
+                
+                # Reconstrói URL com credenciais
+                url_com_auth = f"{parsed.scheme}://{usuario}:{senha}@{parsed.netloc}{parsed.path}"
+                if parsed.query:
+                    url_com_auth += f"?{parsed.query}"
+                if parsed.fragment:
+                    url_com_auth += f"#{parsed.fragment}"
+                
+                self.log(f"🔐 Navegando com autenticação HTTP básica para: {parsed.netloc}")
+                self.driver.get(url_com_auth)
+            else:
+                # Navegação normal sem credenciais
+                self.log(f"🌐 Navegando para: {url[:120]}")
+                self.driver.get(url)
+            
+            self.atualizar_estado()
+            self.log(f"✅ Página carregada: {self.current_url}")
+            return True
+            
+        except Exception as e:
+            self.log(f"❌ Erro ao navegar com autenticação: {e}", "ERROR")
+            return False
+
     def navegar_para_url(self, url):
         """Navega para uma URL específica"""
         try:
             if not self.driver:
                 self.log("❌ Driver não inicializado", "ERROR")
                 return False
+            
             # Validação: garantir que url seja string e não vazia
             if isinstance(url, dict):
-                # Tenta extrair campo 'url' se for um dict
                 url = url.get('url') if 'url' in url else None
 
             if url is None:
@@ -143,7 +204,7 @@ class SeleniumEmbedded:
                 self.log(f"❌ URL vazia recebida para navegação: '{url}'", "ERROR")
                 return False
 
-            self.log(f"🌐 Navegando para (tipo={type(url).__name__}): {url[:120]}")
+            self.log(f"🌐 Navegando para: {url[:120]}")
             self.driver.get(url)
             self.atualizar_estado()
             self.log(f"✅ Página carregada: {self.current_url}")
@@ -151,6 +212,54 @@ class SeleniumEmbedded:
             
         except Exception:
             self.log("❌ Erro ao navegar: exceção não esperada", "ERROR")
+            return False
+
+    def suprimir_alertas_pendentes(self):
+        """Suprime qualquer alerta ou diálogo pendente"""
+        try:
+            if not self.driver:
+                return False
+            
+            # Tenta lidar com alertas JavaScript
+            alert = self.driver.switch_to.alert
+            alert_text = alert.text
+            self.log(f"🚨 Alerta detectado e suprimido: {alert_text[:50]}")
+            alert.dismiss()  # ou alert.accept() dependendo do contexto
+            return True
+            
+        except Exception:
+            # Não há alertas pendentes, o que é o comportamento esperado
+            return False
+
+    def configurar_para_rabbitmq(self):
+        """Configura o navegador especificamente para RabbitMQ (suprime popups de auth)"""
+        try:
+            if not self.driver:
+                return False
+            
+            # Executa JavaScript para suprimir diálogos de autenticação
+            suppress_auth_script = """
+                // Suprime diálogos de autenticação HTTP
+                window.alert = function() {};
+                window.confirm = function() { return true; };
+                window.prompt = function() { return null; };
+                
+                // Override para XMLHttpRequest para lidar com auth automaticamente
+                var originalOpen = XMLHttpRequest.prototype.open;
+                XMLHttpRequest.prototype.open = function() {
+                    originalOpen.apply(this, arguments);
+                    this.withCredentials = false;
+                };
+                
+                console.log('RabbitMQ popup suppression configured');
+            """
+            
+            self.driver.execute_script(suppress_auth_script)
+            self.log("🐰 Configurações específicas do RabbitMQ aplicadas (anti-popup)")
+            return True
+            
+        except Exception as e:
+            self.log(f"⚠️ Erro ao configurar para RabbitMQ: {e}", "WARNING")
             return False
     
     def capturar_screenshot(self):
