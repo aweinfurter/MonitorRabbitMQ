@@ -1,0 +1,112 @@
+<input type="email" name="loginfmt" id="i0116" maxlength="113" class="form-control ltr_override input ext-input text-box ext-text-box" aria-required="true" data-report-event="Signin_Email_Phone_Skype" data-report-trigger="click" data-report-value="Email_Phone_Skype_Entry" data-bind="
+                    attr: { lang: svr.fApplyAsciiRegexOnInput ? null : 'en',
+                    autocomplete: svr.fEnablePasskeyAutofillUI ? 'username webauthn' : 'username' },
+                    externalCss: {
+                        'input': true,
+                        'text-box': true,
+                        'has-error': usernameTextbox.error },
+                    ariaLabel: tenantBranding.unsafe_userIdLabel || str['CT_PWD_STR_Username_AriaLabel'],
+                    ariaDescribedBy:
+                     svr.fWin10HostAccessibilityFix ?
+                        'winBodyHeader winBodySubHeader loginHeader' + (pageDescription &amp;&amp; !svr.fHideLoginDesc ? ' loginDescription usernameError' : ' usernameError') :
+                        'loginHeader' + (pageDescription &amp;&amp; !svr.fHideLoginDesc ? ' loginDescription usernameError' : ' usernameError'),
+                    textInput: usernameTextbox.value,
+                    hasFocusEx: usernameTextbox.focused,
+                    placeholder: $placeholderText" autocomplete="username webauthn" aria-label="Insira o seu email, telefone ou Skype." aria-describedby="loginHeader usernameError" placeholder="Email, telefone ou Skype" data-report-attached="1">
+
+============================================================================================================
+<input name="passwd" type="password" id="i0118" class="form-control input ext-input text-box ext-text-box" aria-required="true" data-bind="
+                attr: { autocomplete: svr.fIsUpdatedAutocompleteEnabled ? 'current-password' : 'off'},
+                textInput: passwordTextbox.value,
+                ariaDescribedBy: [
+                    'loginHeader passwordError',
+                    showCredViewBrandingDesc ? 'credViewBrandingDesc' : '',
+                    unsafe_pageDescription ? 'passwordDesc' : ''].join(' '),
+                hasFocusEx: passwordTextbox.focused() &amp;&amp; !showPassword(),
+                placeholder: $placeholderText,
+                ariaLabel: unsafe_passwordAriaLabel,
+                moveOffScreen: showPassword,
+                externalCss: {
+                    'input': true,
+                    'text-box': true,
+                    'has-error': passwordTextbox.error }" autocomplete="current-password" aria-describedby="loginHeader passwordError  " placeholder="Senha" aria-label="Insira a senha para andre.weinfurter@totvs.com.br" tabindex="0">
+==================================================================================================================
+<div class="table" tabindex="0" role="button" data-bind="
+                    attr: { 'data-value': value },
+                    css: { 'list-item': svr.fSupportWindowsStyles },
+                    ariaDescribedBy: $data === $parent.focusedProof() ? 'idDiv_SAOTCS_Title' : null,
+                    click: $parent.proof_onClick,
+                    pressEnter: $parent.proof_onClick,
+                    hasFocus: $data === $parent.focusedProof()" data-value="PhoneAppNotification" aria-describedby="idDiv_SAOTCS_Title">
+                    <div class="table-row">
+                        <div class="table-cell tile-img">
+                            <div data-bind="component: { name: 'proof-image-control', params: { type: type } }"><!--  -->
+
+<!-- ko if: type === PROOF.Type.Email --><!-- /ko -->
+
+<!-- ko if: type === PROOF.Type.SMS || type === PROOF.Type.TwoWaySMS || type === PROOF.Type.TwoWaySMSAlternateMobile --><!-- /ko -->
+
+<!-- ko if: type === PROOF.Type.Voice || type === PROOF.Type.TwoWayVoice || type === PROOF.Type.TwoWayVoiceAlternateMobile || type === PROOF.Type.TwoWayVoiceOffice --><!-- /ko -->
+
+<!-- ko if: type === PROOF.Type.TOTPAuthenticatorV2 -->
+    <!-- ko if: svr.fShowPushNotifications --><!-- /ko -->
+    <!-- ko ifnot: svr.fShowPushNotifications -->
+        <!-- ko component: 'accessible-image-control' --><!-- ko if: (isHighContrastBlackTheme || hasDarkBackground || svr.fHasBackgroundColor) && !isHighContrastWhiteTheme --><!-- /ko -->
+<!-- ko if: (isHighContrastWhiteTheme || (!hasDarkBackground && !svr.fHasBackgroundColor)) && !isHighContrastBlackTheme -->
+<!-- ko template: { nodes: [darkImageNode], data: $parent } --><img class="tile-img" role="presentation" pngsrc="https://aadcdn.msauth.net/shared/1.0/content/images/picker_verify_authenticator_ab97369c31dc9611c6455aeaed14b43e.png" svgsrc="https://aadcdn.msauth.net/shared/1.0/content/images/picker_verify_fluent_authenticator_59892f1e05e3adf9fd2f71b42d92a27f.svg" data-bind="imgSrc, css: { 'small': small, 'animate-pulse': animate }" src="https://aadcdn.msauth.net/shared/1.0/content/images/picker_verify_fluent_authenticator_59892f1e05e3adf9fd2f71b42d92a27f.svg"><!-- /ko -->
+<!-- /ko --><!-- /ko -->
+    <!-- /ko -->
+<!-- /ko -->
+
+<!-- ko if: type === PROOF.Type.TOTPAuthenticator --><!-- /ko -->
+
+<!-- ko ifnot: svr.fIsPasskeySupportEnabled --><!-- /ko -->
+
+<!-- ko if: svr.fIsPasskeySupportEnabled -->
+    <!-- ko if: type === PROOF.Type.FidoKey --><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko if: type === PROOF.Type.AccessPass --><!-- /ko -->
+
+<!-- ko if: type === PROOF.Type.Certificate --><!-- /ko -->
+
+<!-- ko if: svr.fPassTelephonyAuthMethod --><!-- /ko -->
+
+<!-- ko if: svr.fDisplayCompanionApp -->
+    <!-- ko if: type === PROOF.Type.CompanionApp --><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko if: type === PROOF.Type.ExternalAuth --><!-- /ko --></div>
+                        </div>
+                        <div class="table-cell text-left content" data-bind="css: { 'content': !svr.fSupportWindowsStyles }">
+                            <div data-bind="text: display">Aprovar uma solicitação em meu aplicativo Microsoft Authenticator</div>
+                            <!-- ko if: showProofDetail --><!-- /ko -->
+                        </div>
+                    </div>
+                </div>
+===================================================================================
+<div tabindex="0" aria-labelledby="idDiv_SAOTCAS_Description idRichContext_DisplaySign" id="idRichContext_DisplaySign" class="displaySign display-sign-height" data-bind="text: displaySign, hasFocusEx: focusOnSign(), css: { 'display-sign-height': svr.fEnableCenterFocusedApprovalNumber }">77</div>
+================================================================================
+<input id="KmsiCheckboxField" name="DontShowAgain" type="checkbox" value="true" data-bind="ariaLabel: str['STR_Kmsi_DontShowAgain']" aria-label="Não mostrar isso novamente">
+=====================================================================================
+<input type="submit" id="idSIButton9" class="win-button button_primary high-contrast-overrides button ext-button primary ext-primary" data-report-event="Signin_Submit" data-report-trigger="click" data-report-value="Submit" data-bind="
+                attr: primaryButtonAttributes,
+                css: { 'high-contrast-overrides': true },
+                externalCss: {
+                    'button': true,
+                    'primary': true },
+                value: primaryButtonText() || str['CT_PWD_STR_SignIn_Button_Next'],
+                hasFocus: focusOnPrimaryButton,
+                click: svr.fEnableLivePreview ?  function() { } : primaryButton_onClick,
+                clickBubble: !svr.fEnableLivePreview,
+                enable: isPrimaryButtonEnabled,
+                visible: isPrimaryButtonVisible,
+                preventTabbing: primaryButtonPreventTabbing" aria-describedby="KmsiDescription" value="Sim" data-report-attached="1">
+======================================================================================
+<button aria-roledescription="button" class="bolt-header-command-item-button bolt-button enabled primary bolt-focus-treatment" data-focuszone="focuszone-3" data-is-focusable="true" id="__bolt-run-pipeline-command" role="menuitem" tabindex="0" type="button"><span class="bolt-button-text body-m">Run pipeline</span></button>
+===============================================================================================
+<input type="button" autocomplete="off" aria-disabled="false" aria-expanded="false" aria-haspopup="menu" aria-label="Service" aria-labelledby="__bolt-form-item-1-label" aria-roledescription="Dropdown" data-focuszone="focuszone-77" class="bolt-dropdown-expandable-textfield-input text-ellipsis bolt-textfield-input flex-grow bolt-textfield-input-with-suffix" id="__bolt-textfield-input-2" tabindex="0" value="supply-logistica-pgr-core-svc-prod.supply-logistica-pgr" style="">
+================================================================================================
+<input type="text" autocomplete="off" aria-disabled="false" aria-labelledby="__bolt-form-item-2-label" data-focuszone="focuszone-77" class="bolt-textfield-input flex-grow" id="__bolt-textfield-input-3" placeholder="" tabindex="0" value="">
+====================================================================================================
+<button class="bolt-button enabled primary bolt-focus-treatment" data-is-focusable="true" role="button" tabindex="0" type="button" data-focuszone="focuszone-77"><span class="bolt-button-text body-m">Run</span></button>
