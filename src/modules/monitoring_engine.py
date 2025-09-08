@@ -109,8 +109,8 @@ class MonitoringEngine:
                     self.logging_system.enviar_log_web(f"❌ ERRO CICLO", f"Erro no ciclo {ciclo}: {e}")
                     if self.app_instance.is_monitoring:
                         self.logging_system.enviar_log_web("🔄 TENTATIVA", "Tentando continuar após erro...")
-                        time.sleep(30)  # Pausa antes de tentar novamente
-            
+                        time.sleep(1)
+
             return True
             
         except Exception as e:
@@ -139,7 +139,7 @@ class MonitoringEngine:
                 self.logging_system.enviar_log_web("⚠️ FILTRO", f"Erro ao aplicar filtro: {e}")
             
             # Aguarda um pouco para o filtro ser aplicado
-            time.sleep(2)
+            time.sleep(1)
             
             # Agora usa a função de verificação real das filas
             self.logging_system.enviar_log_web("🔍 COLETA", "Iniciando verificação real das filas...")

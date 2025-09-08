@@ -25,17 +25,12 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
         except:
             voltar_para_queues(driver)
         
-        # Aguarda um pouco para garantir que a página está estável
-        time.sleep(3)
-        
         # MELHORIA: Aguarda explicitamente que a tabela esteja completamente carregada
         try:
             print("⏳ Aguardando tabela carregar completamente...")
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "table.list tbody tr"))
             )
-            # Aguarda um pouco mais para garantir que todos os elementos estão estáveis
-            time.sleep(2)
         except:
             print("⚠️ Timeout aguardando tabela, continuando...")
         
@@ -68,7 +63,7 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
                     resultado = driver.execute_script(clique_js_script)
                     if resultado:
                         print(f"✅ Clique via JavaScript XPath realizado na fila {nome_fila}")
-                        time.sleep(3)  # Aguarda o clique ser processado
+                        time.sleep(1)  # Aguarda o clique ser processado
                         sucesso_clique = True
                         break
                     else:
@@ -106,7 +101,7 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
                         resultado = driver.execute_script(clique_por_indice_script)
                         if resultado:
                             print(f"✅ Clique por índice realizado na fila {nome_fila}")
-                            time.sleep(3)
+                            time.sleep(1)
                             sucesso_clique = True
                             break
                         else:
@@ -127,7 +122,6 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
                         
                         # Scroll e clique imediato
                         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", link_element)
-                        time.sleep(1)
                         
                         # Tenta clique normal primeiro
                         try:
@@ -158,15 +152,11 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
                             WebDriverWait(driver, 10).until(
                                 EC.presence_of_element_located((By.CSS_SELECTOR, "table.list tbody tr"))
                             )
-                            time.sleep(2)
                         except:
                             pass
-                    
-                time.sleep(2)
                 
             except Exception as e:
                 print(f"⚠️ Erro na tentativa {tentativa + 1}: {e}")
-                time.sleep(2)
                 continue
         
         if not sucesso_clique:
@@ -175,7 +165,7 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
         
         # Aguarda a página carregar
         print("⏳ Aguardando página da fila carregar...")
-        time.sleep(5)
+        time.sleep(1)
         
         # Verifica e expande a seção "Get messages" se necessário
         try:
@@ -238,7 +228,7 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
         
         # Aguarda as mensagens carregarem
         print("⏳ Aguardando mensagens carregarem...")
-        time.sleep(10)
+        time.sleep(1)
         
         # BUSCA CORRETA: Dentro da div#msg-wrapper
         excecoes = []
@@ -297,10 +287,14 @@ def processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_name
             nome_fila = link[0].text.strip()
             if nome_fila in queue_names:
                 filas_encontradas.add(nome_fila)
-                valor_fila = cols[5].text.strip()  # TOTAL
-                quantidade = int(valor_fila)
-                
+                valor_fila_ready = cols[5].text.strip()  # TOTAL
+                valor_fila_total = cols[7].text.strip()  # READY
+                quantidade_ready = int(valor_fila_ready)
+                quantidade_total = int(valor_fila_total)
+                quantidade = max(quantidade_ready, quantidade_total)
+
                 if quantidade > 0:
+                    
                     print(f"⚠️  PROBLEMA DETECTADO: {nome_fila} tem {quantidade} mensagens")
                     # Apenas salva os dados, não extrai exceções ainda
                     filas_com_problemas.append({
@@ -351,7 +345,7 @@ def extrair_excecoes_todas_filas(driver, filas_com_problemas):
         filas_com_detalhes.append(fila_texto)
         
         # Aguarda um pouco entre filas para não sobrecarregar
-        time.sleep(2)
+        time.sleep(1)
     
     print(f"\n✅ EXTRAÇÃO COMPLETA! Processadas {len(filas_com_detalhes)} filas com problemas.")
     return filas_com_detalhes
@@ -363,9 +357,6 @@ def verificar_fila(driver, queue_names, intervalo_minutos):
     try:        
         print("\n🔍 ETAPA 1: COLETANDO FILAS COM PROBLEMAS...")
         
-        # Aguarda um pouco para garantir que a página carregou
-        time.sleep(3)
-        
         # Verifica se a página está acessível
         try:
             current_url = driver.current_url
@@ -373,10 +364,6 @@ def verificar_fila(driver, queue_names, intervalo_minutos):
                 raise Exception("Não está na página do RabbitMQ")
         except Exception as e:
             raise Exception(f"Problema de conectividade: {e}")
-        
-        # NÃO REAPLICA O FILTRO - já fica salvo!
-        print("🔍 O filtro já está aplicado e salvo!")
-        
         # Verifica se consegue encontrar a tabela
         try:
             rows = driver.find_elements(By.CSS_SELECTOR, "table.list tbody tr")
@@ -474,7 +461,7 @@ def verificar_fila(driver, queue_names, intervalo_minutos):
         try:
             print("🔄 Tentando recuperar conexão...")
             driver.get("https://message-broker.totvs.app/#/queues")
-            time.sleep(5)
+            time.sleep(1)
             print("✅ Conexão recuperada!")
         except Exception as recovery_error:
             print(f"❌ Falha na recuperação: {recovery_error}")

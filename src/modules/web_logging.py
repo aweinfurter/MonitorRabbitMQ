@@ -61,7 +61,7 @@ class WebLoggingSystem:
             
             # AJUSTE: Permite resumos serem exibidos novamente após 30 segundos
             # Para categorias de RESUMO, usa cache com tempo limitado
-            if categoria == "RESUMO":
+            if categoria == "RESUMO" or categoria == "EXCECOES" or categoria == "PROBLEMA" or categoria == "COLETA":
                 import time
                 current_time = time.time()
                 log_key = f"{categoria}:{mensagem}"

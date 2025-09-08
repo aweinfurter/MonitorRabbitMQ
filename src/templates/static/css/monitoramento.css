@@ -429,7 +429,7 @@ body {
 /* Logs Container */
 .logs-container {
     padding: 20px 30px;
-    height: 500px;
+    height: 600px;
     display: flex;
     flex-direction: column;
 }

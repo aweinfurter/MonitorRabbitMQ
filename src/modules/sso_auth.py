@@ -119,7 +119,7 @@ def fazer_login_sso_automatico(driver, sso_username, sso_password, mfa_token=Non
             print("✅ Enter enviado no campo de senha")
 
             # Aguarda um pouco e verifica MFA mesmo sem botão
-            time.sleep(2)
+            time.sleep(1)
             if mfa_token:
                 if detectar_e_preencher_mfa(driver, mfa_token):
                     print("✅ Token MFA preenchido automaticamente!")

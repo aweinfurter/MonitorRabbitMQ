@@ -43,9 +43,6 @@ def navegar_para_queues(driver, timeout=30):
         # Clica na aba de queues
         queues_link.click()
         
-        # Aguarda a página de queues carregar
-        time.sleep(3)
-        
         print("✅ Navegação para 'Queues' concluída!")
         return True
         
@@ -76,7 +73,7 @@ def aplicar_filtro_regex(driver, regex):
             print("✅ Checkbox de regex já estava ativado.")
             
         # Aguarda o filtro ser aplicado
-        time.sleep(10)
+        time.sleep(1)
         print("✅ Filtro aplicado com sucesso!")
         
     except Exception as e:
@@ -94,7 +91,6 @@ def voltar_para_queues(driver):
         )
         queues_link.click()
         print("✅ Voltou via link do menu")
-        time.sleep(3)
         return True
     except Exception as e:
         print(f"⚠️ Erro ao voltar via menu: {e}")
