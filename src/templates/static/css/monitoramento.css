@@ -476,6 +476,23 @@ body {
 .log-entry.simulacao { color: #ff79c6; }
 .log-entry.debug { color: #f1fa8c; }
 
+/* DESTAQUE ESPECIAL PARA REPROCESSAMENTO */
+.log-entry.reprocessamento { 
+    color: #ff6b35; 
+    font-weight: bold;
+    background: rgba(255, 107, 53, 0.1);
+    padding: 3px 6px;
+    border-radius: 4px;
+    border-left: 4px solid #ff6b35;
+    animation: pulse-reprocess 2s infinite;
+}
+
+@keyframes pulse-reprocess {
+    0% { background: rgba(255, 107, 53, 0.1); }
+    50% { background: rgba(255, 107, 53, 0.2); }
+    100% { background: rgba(255, 107, 53, 0.1); }
+}
+
 /* Footer */
 .footer {
     text-align: center;

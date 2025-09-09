@@ -86,7 +86,7 @@ class MonitoringEngine:
                         ciclo += 1
                         continue
 
-                    self.logging_system.enviar_log_web("⚙️ CONFIG", f"Filas monitoradas: {', '.join(queue_names)}")
+                    # self.logging_system.enviar_log_web("⚙️ CONFIG", f"Filas monitoradas: {', '.join(queue_names)}")
                     self.logging_system.enviar_log_web("⚙️ CONFIG", f"Intervalo: {intervalo_minutos} minutos")
 
                     self.logging_system.enviar_log_web("🔄 CICLO", f"Iniciando ciclo {ciclo} de monitoramento...")
@@ -146,7 +146,7 @@ class MonitoringEngine:
             
             try:
                 from modules.monitor import verificar_fila
-                verificar_fila(driver, queue_names, intervalo_minutos)
+                verificar_fila(driver, queue_names, intervalo_minutos, self.config)
                 self.logging_system.enviar_log_web("✅ VERIFICAÇÃO", "Verificação das filas concluída com sucesso!")
                 
             except Exception as e:
@@ -221,21 +221,25 @@ class MonitoringEngine:
                 if any(queue_name.lower() in nome.lower() for queue_name in queue_names):
                     filas_encontradas.append(nome)
                     
-                    try:
-                        # Remove vírgulas e converte para número
-                        quantidade = int(mensagens_str.replace(',', '').replace('.', ''))
+                    # Converte para número (sempre será um número natural positivo)
+                    quantidade = int(mensagens_str)
                         
-                        if quantidade > 0:
-                            self.logging_system.enviar_log_web("⚠️ PROBLEMA", f"DETECTADO: {nome} tem {quantidade} mensagens")
-                            filas_com_problemas.append({
-                                'nome': nome,
-                                'quantidade': quantidade
-                            })
+                    if quantidade > 0:
+                        # NOVO: Detecta se pode ser erro de reprocessamento pelo nome da fila
+                        eh_reprocessamento = any(keyword in nome.lower() for keyword in ['retry', 'reprocess', 'dlq', 'dead-letter', 'batch'])
+                        
+                        if eh_reprocessamento:
+                            self.logging_system.enviar_log_web("🔄 REPROCESSAMENTO", f"DETECTADO: {nome} tem {quantidade} mensagens")
                         else:
-                            self.logging_system.enviar_log_web("✅ OK", f"Fila vazia: {nome}")
+                            self.logging_system.enviar_log_web("⚠️ PROBLEMA", f"DETECTADO: {nome} tem {quantidade} mensagens")
                             
-                    except ValueError:
-                        self.logging_system.enviar_log_web("⚠️ PARSE", f"Erro ao converter quantidade para {nome}: {mensagens_str}")
+                        filas_com_problemas.append({
+                            'nome': nome,
+                            'quantidade': quantidade,
+                            'eh_reprocessamento': eh_reprocessamento
+                        })
+                    else:
+                        self.logging_system.enviar_log_web("✅ OK", f"Fila vazia: {nome}")
             
             # Verifica filas não encontradas
             filas_nao_encontradas = [fila for fila in queue_names if not any(fila.lower() in f.lower() for f in filas_encontradas)]
@@ -366,6 +370,56 @@ class MonitoringEngine:
             self.logging_system.enviar_log_web("❌ ERRO SIMULAÇÃO", f"{e}")
         finally:
             self.cleanup_monitoramento()
+    
+    def executar_ciclo_manual(self):
+        """Executa um único ciclo de monitoramento manual"""
+        try:
+            self.logging_system.enviar_log_web("⚡ MANUAL", "Iniciando execução manual do monitoramento...")
+            
+            # Obtém configurações atuais
+            queue_names = self.app_instance.config.get('filas_monitoradas', [])
+            intervalo_minutos = int(self.app_instance.config.get('intervalo_minutos', 10))
+            
+            if not queue_names:
+                self.logging_system.enviar_log_web("⚠️ CONFIG", "Nenhuma fila configurada para monitoramento manual")
+                return False
+                
+            # Decide qual sistema usar
+            from modules.selenium_manager import SELENIUM_DISPONIVEL
+            if self.app_instance.usar_selenium_embarcado and SELENIUM_DISPONIVEL:
+                self.logging_system.enviar_log_web("🤖 MANUAL", "Executando com Selenium embarcado...")
+                return self._executar_ciclo_manual_selenium(queue_names, intervalo_minutos)
+            else:
+                self.logging_system.enviar_log_web("🖥️ MANUAL", "Sistema tradicional não suportado para execução manual")
+                return False
+                
+        except Exception as e:
+            self.logging_system.enviar_log_web("❌ ERRO MANUAL", f"Erro na execução manual: {e}")
+            return False
+    
+    def _executar_ciclo_manual_selenium(self, queue_names, intervalo_minutos):
+        """Executa um ciclo manual usando Selenium embarcado"""
+        try:
+            # Verifica se o Selenium está inicializado, senão inicializa
+            driver_disponivel = (self.selenium_manager.selenium_driver and 
+                               hasattr(self.selenium_manager.selenium_driver, 'driver') and 
+                               self.selenium_manager.selenium_driver.driver)
+            
+            if not driver_disponivel:
+                self.logging_system.enviar_log_web("🤖 MANUAL", "Inicializando Selenium para execução manual...")
+                if not self.selenium_manager.inicializar_selenium_embarcado():
+                    self.logging_system.enviar_log_web("❌ ERRO MANUAL", "Falha ao inicializar Selenium para execução manual")
+                    return False
+            
+            # Executa verificação única das filas
+            self._verificar_filas_selenium_embarcado(queue_names, intervalo_minutos)
+            
+            self.logging_system.enviar_log_web("✅ MANUAL", "Execução manual concluída com sucesso")
+            return True
+            
+        except Exception as e:
+            self.logging_system.enviar_log_web("❌ ERRO MANUAL", f"Erro durante execução manual: {e}")
+            return False
     
     def parar_monitoramento(self):
         """Para qualquer tipo de monitoramento"""

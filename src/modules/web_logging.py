@@ -41,9 +41,6 @@ class WebLoggingSystem:
         # ID incremental para cada log (ajuda polling continuar de onde parou)
         self._next_log_id = 1
         
-        # Cache para evitar duplicações
-        self._last_logs_cache = deque(maxlen=50)
-        
         # Referência para print original (evita recursão)
         self.original_print = print
         
@@ -59,32 +56,8 @@ class WebLoggingSystem:
                     # Se não detectar categoria, não envia para web
                     return
             
-            # AJUSTE: Permite resumos serem exibidos novamente após 30 segundos
-            # Para categorias de RESUMO, usa cache com tempo limitado
-            if categoria == "RESUMO" or categoria == "EXCECOES" or categoria == "PROBLEMA" or categoria == "COLETA":
-                import time
-                current_time = time.time()
-                log_key = f"{categoria}:{mensagem}"
-                
-                # Verifica se já existe no cache com timestamp
-                for cached_item in list(self._last_logs_cache):
-                    if isinstance(cached_item, tuple) and cached_item[0] == log_key:
-                        # Se passou mais de 30 segundos, remove do cache
-                        if current_time - cached_item[1] > 30:
-                            self._last_logs_cache.remove(cached_item)
-                        else:
-                            return  # Ainda dentro do tempo de cache
-                
-                # Adiciona com timestamp para RESUMO
-                self._last_logs_cache.append((log_key, current_time))
-            else:
-                # Para outras categorias, mantém o comportamento original
-                log_key = f"{categoria}:{mensagem}"
-                if log_key in self._last_logs_cache:
-                    return  # Ignora duplicação
-                
-                # Adiciona ao cache de duplicação
-                self._last_logs_cache.append(log_key)
+            # CACHE/FILTRO REMOVIDO: Todos os logs são enviados sem filtros
+            # Isso garante que problemas críticos nunca sejam perdidos
 
             # Armazena no buffer local para polling HTTP
             try:
@@ -210,7 +183,16 @@ class WebLoggingSystem:
         elif "🚀" in texto and ("sistema" in texto_lower or "monitor" in texto_lower):
             return "SISTEMA"
         elif "⚙️" in texto and "config" in texto_lower:
-            return "CONFIG" 
+            return "CONFIG"
+            
+        # NOVO: Detecção especial para REPROCESSAMENTO
+        elif "🔄" in texto and ("reprocessamento" in texto_lower or "reprocess" in texto_lower):
+            return "REPROCESSAMENTO"
+        elif "reprocessamento detectado" in texto_lower:
+            return "REPROCESSAMENTO"
+        elif "batch update returned unexpected row count" in texto_lower:
+            return "REPROCESSAMENTO"
+            
         elif "🌐" in texto and "driver" in texto_lower:
             return "DRIVER"
         elif "🔗" in texto and ("navegando" in texto_lower or "conexão" in texto_lower):

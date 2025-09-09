@@ -279,7 +279,8 @@ def processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_name
     """Processa uma linha da tabela de filas - APENAS COLETA, NÃO EXTRAI EXCEÇÕES"""
     try:
         cols = row.find_elements(By.TAG_NAME, "td")
-        if len(cols) < 6:
+        if len(cols) < 8:  # Precisa ter pelo menos 8 colunas para acessar [7]
+            print(f"⚠️ Linha com {len(cols)} colunas - insuficiente")
             return
 
         link = cols[1].find_elements(By.TAG_NAME, "a")
@@ -287,22 +288,31 @@ def processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_name
             nome_fila = link[0].text.strip()
             if nome_fila in queue_names:
                 filas_encontradas.add(nome_fila)
-                valor_fila_ready = cols[5].text.strip()  # TOTAL
-                valor_fila_total = cols[7].text.strip()  # READY
+                
+                # Lê valores das colunas (sempre números naturais positivos)
+                valor_fila_ready = cols[5].text.strip()  # Coluna 5 - READY
+                valor_fila_total = cols[7].text.strip()  # Coluna 7 - TOTAL
                 quantidade_ready = int(valor_fila_ready)
                 quantidade_total = int(valor_fila_total)
                 quantidade = max(quantidade_ready, quantidade_total)
 
                 if quantidade > 0:
+                    # NOVO: Detecta se pode ser erro de reprocessamento pelo nome da fila
+                    eh_reprocessamento = any(keyword in nome_fila.lower() for keyword in ['retry', 'reprocess', 'dlq', 'dead-letter'])
                     
-                    print(f"⚠️  PROBLEMA DETECTADO: {nome_fila} tem {quantidade} mensagens")
-                    # Apenas salva os dados, não extrai exceções ainda
+                    if eh_reprocessamento:
+                        print(f"🔄 REPROCESSAMENTO DETECTADO: {nome_fila} tem {quantidade} mensagens")
+                    else:
+                        print(f"⚠️  PROBLEMA DETECTADO: {nome_fila} tem {quantidade} mensagens")
+                    
                     filas_com_problemas.append({
                         'nome': nome_fila,
-                        'quantidade': quantidade
+                        'quantidade': quantidade,
+                        'eh_reprocessamento': eh_reprocessamento
                     })
                 else:
-                    print(f"[OK] Fila vazia: {nome_fila}: {quantidade}")
+                    print(f"✅ [OK] Fila vazia: {nome_fila}")
+                    
     except Exception as e:
         print(f"❌ Erro ao processar linha: {e}")
 
@@ -320,8 +330,21 @@ def extrair_excecoes_todas_filas(driver, filas_com_problemas):
         # Extrai as exceções desta fila específica
         excecoes = extrair_excecoes_fila(driver, nome_fila, quantidade)
         
+        # NOVO: Verifica se há erros de reprocessamento
+        tem_erro_reprocessamento = False
+        if excecoes:
+            for exc in excecoes:
+                if "Erro de reprocessamento de fila" in exc or "Batch update returned unexpected row count" in exc:
+                    tem_erro_reprocessamento = True
+                    break
+        
         # Monta o texto resumido da fila - CONTABILIZA OCORRÊNCIAS DE CADA EXCEÇÃO
-        fila_texto = f"{nome_fila}: {quantidade} mensagens"
+        if tem_erro_reprocessamento:
+            # DESTAQUE ESPECIAL para erro de reprocessamento
+            fila_texto = f"🔄 REPROCESSAMENTO: {nome_fila}: {quantidade} mensagens"
+        else:
+            fila_texto = f"{nome_fila}: {quantidade} mensagens"
+            
         if excecoes:
             # Conta ocorrências de cada tipo de exceção
             contador_excecoes = {}
@@ -338,7 +361,11 @@ def extrair_excecoes_todas_filas(driver, filas_com_problemas):
             
             fila_texto += f"\nExceções: {total_excecoes} total, {tipos_unicos} tipo(s) diferentes:"
             for j, (exc, count) in enumerate(excecoes_ordenadas, 1):
-                fila_texto += f"\n  {j}. {exc} ({count}x)"
+                # Destaque especial para erros de reprocessamento
+                if "Erro de reprocessamento de fila" in exc or "Batch update returned unexpected row count" in exc:
+                    fila_texto += f"\n  {j}. 🔄 {exc} ({count}x) [REPROCESSAMENTO]"
+                else:
+                    fila_texto += f"\n  {j}. {exc} ({count}x)"
         else:
             fila_texto += "\n  (Não foi possível extrair exceções)"
         
@@ -364,27 +391,50 @@ def verificar_fila(driver, queue_names, intervalo_minutos):
                 raise Exception("Não está na página do RabbitMQ")
         except Exception as e:
             raise Exception(f"Problema de conectividade: {e}")
+        
+        # MELHORIA CRÍTICA: Aguarda a tabela carregar completamente antes de ler
+        print("⏳ Aguardando tabela carregar completamente...")
+        time.sleep(2)  # Aguarda um pouco mais para garantir carregamento
+        
         # Verifica se consegue encontrar a tabela
         try:
             rows = driver.find_elements(By.CSS_SELECTOR, "table.list tbody tr")
+            if len(rows) == 0:
+                print("⚠️ Tabela vazia na primeira tentativa, aguardando mais...")
+                time.sleep(3)  # Aguarda mais tempo
+                rows = driver.find_elements(By.CSS_SELECTOR, "table.list tbody tr")
+                
             if len(rows) == 0:
                 raise Exception("Tabela de filas não encontrada ou vazia")
         except Exception as e:
             raise Exception(f"Erro ao acessar tabela de filas: {e}")
         
-        filas_encontradas = set()
-        filas_com_problemas = []
-        
-        print(f"🔍 Encontradas {len(rows)} linhas na tabela")
-        
-        # ETAPA 1: Coleta apenas as filas com problemas
-        for i, row in enumerate(rows):
-            try:
-                processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_names)
-            except Exception as e:
-                print(f"⚠️ Erro ao processar linha {i}: {e}")
-                continue
-                
+        # VERIFICAÇÃO DUPLA: Faz duas passadas para garantir detecção
+        for passada in range(1, 3):
+            print(f"\n🔄 PASSADA {passada}/2 - Verificando filas...")
+            
+            filas_encontradas = set()
+            filas_com_problemas = []
+            
+            print(f"🔍 Encontradas {len(rows)} linhas na tabela")
+            
+            # ETAPA 1: Coleta apenas as filas com problemas
+            for i, row in enumerate(rows):
+                try:
+                    processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_names)
+                except Exception as e:
+                    print(f"⚠️ Erro ao processar linha {i}: {e}")
+                    continue
+            
+            # Aguarda entre passadas para dar tempo de atualização
+            if passada == 1 and len(filas_com_problemas) == 0:
+                print("⏳ Primeira passada não encontrou problemas, aguardando 3 segundos antes da segunda passada...")
+                time.sleep(3)
+                # Recarrega a tabela
+                rows = driver.find_elements(By.CSS_SELECTOR, "table.list tbody tr")
+            else:
+                break  # Se encontrou problemas, não precisa da segunda passada
+                    
         # Verifica filas não encontradas
         filas_nao_encontradas = []
         for fila in queue_names:
