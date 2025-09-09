@@ -28,7 +28,7 @@ class SeleniumEmbedded:
         
     def log(self, mensagem, categoria="INFO"):
         """Envia log para callback"""
-        self.callback_log(f"[Selenium] {mensagem}", categoria)
+        self.callback_log(f"{mensagem}", categoria)
     
     def inicializar_driver(self, user_data_dir=None):
         """Inicializa o driver Chrome com as configurações apropriadas"""

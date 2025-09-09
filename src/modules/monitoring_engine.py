@@ -44,7 +44,7 @@ class MonitoringEngine:
             # Decide qual sistema usar baseado na disponibilidade
             from modules.selenium_manager import SELENIUM_DISPONIVEL
             if self.app_instance.usar_selenium_embarcado and SELENIUM_DISPONIVEL:
-                self.logging_system.enviar_log_web("🤖 SISTEMA", "Usando Selenium embarcado para máxima compatibilidade")
+                self.logging_system.enviar_log_web("🖥️ SISTEMA", "Usando Selenium embarcado para máxima compatibilidade")
                 return self._executar_com_selenium_embarcado()
             else:
                 self.logging_system.enviar_log_web("🖥️ SISTEMA", "Usando sistema tradicional com WebDriver")

@@ -264,7 +264,7 @@ class WebRoutes:
                 return jsonify({
                     'success': True, 
                     'modo_debug': self.app_instance.modo_debug,
-                    'message': f'Modo debug terminal: {modo_texto}'
+                    'message': f'🖥️ Modo debug terminal: {modo_texto}'
                 })
                 
             except Exception as e:
