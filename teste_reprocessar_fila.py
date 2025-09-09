@@ -1,3 +1,4 @@
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -9,7 +10,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 options = webdriver.ChromeOptions()
 options.add_argument("--start-maximized")
 
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+driver = webdriver.Chrome(options=options)
 
 try:
     print("🔄 Abrindo a URL...")
@@ -21,13 +22,15 @@ try:
     )
     email_input.send_keys("SEU_EMAIL_AQUI")
     email_input.send_keys(Keys.ENTER)
+    time.sleep(1)  # Pequena pausa para evitar problemas de timing
     print("✅ E-mail digitado")
 
     print("🔑 Aguardando input de senha...")
     senha_input = WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.ID, "i0118"))
     )
-    senha_input.send_keys("SUA_SENHA_AQUI")
+    senha_input.send_keys("SEU_SENHA_AQUI")
+    time.sleep(1)  # Pequena pausa para evitar problemas de timing
     senha_input.send_keys(Keys.ENTER)
     print("✅ Senha digitada")
 
@@ -49,6 +52,8 @@ try:
     driver.execute_script(f"alert('Token de verificação: {token_value}')")
 
     print("✅ Alerta exibido no navegador. Feche para continuar...")
+
+    time.sleep(10)  # Pequena pausa para garantir que o alerta seja exibido
 
     WebDriverWait(driver, 60).until(EC.alert_is_present())
     driver.switch_to.alert.accept()
