@@ -122,8 +122,8 @@ def extrair_exception_de_celula(exc_row):
         if exception_text:
             # Verifica se é erro de bash/reprocessamento
             if "Batch update returned unexpected row count from update" in exception_text.lower() or exception_text.strip().startswith("Batch"):
-                return "Erro de reprocessamento de fila"
-            
+                return "🔄️🔄️ Erro de reprocessamento de fila 🔄️🔄️"
+
             # Se contém pacote Java (com pontos), pega apenas a última parte
             if '.' in exception_text and any(java_keyword in exception_text.lower() for java_keyword in ['exception', 'error', 'com.', 'org.', 'java.']):
                 # Exemplo: com.totvs.sl.wms.query.estoque.exception.WMSEstoqueNaoEncontradoException
