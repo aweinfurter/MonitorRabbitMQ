@@ -275,8 +275,9 @@ def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
             pass
         return []
 
-def processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_names):
+def processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_names, driver):
     """Processa uma linha da tabela de filas - APENAS COLETA, NÃO EXTRAI EXCEÇÕES"""
+
     try:
         cols = row.find_elements(By.TAG_NAME, "td")
         if len(cols) < 8:  # Precisa ter pelo menos 8 colunas para acessar [7]
@@ -353,8 +354,6 @@ def extrair_excecoes_todas_filas(driver, filas_com_problemas):
 
 def verificar_fila(driver, queue_names, intervalo_minutos):
     """Função principal de verificação das filas"""
-    import ctypes
-    
     try:        
         print("\n🔍 ETAPA 1: COLETANDO FILAS COM PROBLEMAS...")
         
@@ -386,7 +385,7 @@ def verificar_fila(driver, queue_names, intervalo_minutos):
         # ETAPA 1: Coleta apenas as filas com problemas
         for i, row in enumerate(rows):
             try:
-                processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_names)
+                processar_linha_fila(row, filas_encontradas, filas_com_problemas, queue_names, driver)
             except Exception as e:
                 print(f"⚠️ Erro ao processar linha {i}: {e}")
                 continue
@@ -427,6 +426,11 @@ def verificar_fila(driver, queue_names, intervalo_minutos):
             print("🛑 Use Ctrl+C para encerrar.")
         else:
             print("✅ Todas as filas monitoradas estão vazias!")
+        
+        # Volta para a aba Overview para próxima verificação
+        from rabbitmq import navegar_para_aba
+        print("🔄 Alternando para a aba Overview para manter a sessão ativa...")
+        navegar_para_aba(driver, "Overview")
         
         # Registra data e hora da última verificação
         agora = datetime.now()

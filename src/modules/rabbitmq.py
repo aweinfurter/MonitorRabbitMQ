@@ -24,35 +24,17 @@ def definir_autorefresh(driver, timeout=30):
         print(f"❌ Erro ao esperar dropdown de auto-refresh: {e}")
         return False
 
-def navegar_para_queues(driver, timeout=30):
+def navegar_para_queues(driver):
     """Navega automaticamente para a aba de Queues após o login"""
-    try:
-        print("🔍 Detectando aba 'Queues'...")
-        
-        # Aguarda até aparecer o menu (máximo 30 segundos)
-        wait = WebDriverWait(driver, timeout)
-        
-        # Primeiro tenta encontrar o link dentro do menu
-        queues_link = wait.until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, "#menu #queues-and-streams a[href='#/queues']"))
-        )
-        
-        print("✅ Aba 'Queues' encontrada!")
-        print("🖱️ Clicando na aba 'Queues'...")
-        
-        # Clica na aba de queues
-        queues_link.click()
-        
-        print("✅ Navegação para 'Queues' concluída!")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Erro ao navegar para Queues: {e}")
-        print("Tente clicar manualmente na aba 'Queues'.")
-        return False
+    navegar_para_aba(driver, "Queues")
 
 def aplicar_filtro_regex(driver, regex):
     """Aplica filtro regex na interface do RabbitMQ"""
+
+    verificar_logout(driver)
+
+    navegar_para_aba(driver, "Queues")
+
     try:
         print(f"🔍 Aplicando filtro regex: {regex}")
         
@@ -202,3 +184,49 @@ def extrair_excecoes_de_message_box(box):
     except Exception:
         pass
     return excecoes
+
+def navegar_para_aba(driver, aba):
+    try:
+        aba_id = aba == "Queues" and "queues-and-streams" or aba == "Overview" and "overview" or None
+        aba_href = aba == "Queues" and "#/queues" or aba == "Overview" and "#/" or None
+        print(f"🔍 Detectando aba '{aba}'...")
+        
+        # Primeiro tenta encontrar o link dentro do menu
+        queues_link = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, f"#menu #{aba_id} a[href='{aba_href}']"))
+        )
+
+        print(f"✅ Aba '{aba}' encontrada!")
+        print(f"🖱️ Clicando na aba '{aba}'...")
+
+        # Clica na aba de queues
+        queues_link.click()
+
+        print(f"✅ Navegação para '{aba}' concluída!")
+        return True
+
+        
+    except Exception as e:
+        print(f"❌ Erro ao navegar para {aba}: {e}")
+        print(f"Tente clicar manualmente na aba '{aba}'.")
+        return False
+
+def verificar_logout(driver):
+    """Verifica se houve logout (página de login aparece)"""
+    try:
+        print("🔍 Verificando se apareceu tela de login...")
+        rabbit_login = driver.find_element(By.NAME, "input[name*='username']")
+        if rabbit_login:
+            print("⚠️ Linha de login detectada, fazendo login novamente...")
+            try:
+                login_button = driver.find_element(By.CSS_SELECTOR, "input[type='submit'], button[type='submit']")
+                print("🖱️ Clicando no botão de login...")
+                login_button.click()
+                print("✅ Login automático realizado!")
+                return True
+            except Exception as e:
+                print(f"⚠️ Não foi possível clicar automaticamente no botão de login: {e}")
+                print("👤 Clique manualmente no botão 'Login' no navegador")
+                return True
+    except:
+        pass
