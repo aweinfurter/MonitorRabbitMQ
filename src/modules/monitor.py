@@ -10,6 +10,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .rabbitmq import extrair_excecoes_de_message_box, voltar_para_queues
 from .ui import popup
+from .email_engine import enviar_email
+
 
 def extrair_excecoes_fila(driver, nome_fila, quantidade_mensagens):
     """Extrai as exceções das mensagens de uma fila específica"""
@@ -419,6 +421,17 @@ def verificar_fila(driver, queue_names, intervalo_minutos):
             mensagem_completa += "\n" + "="*35 + "\n"
             mensagem_completa += "\n\n".join(filas_com_detalhes)
             mensagem_completa += f"\n\n⏰ Verificação realizada em: {timestamp_formatado}"
+
+            #EMAIL CRÍTICO - Envia email se possível
+            subject = f"Monitor RabbitMQ — {total_filas_problemas} fila(s) com problemas"
+            body = f"{mensagem_completa}\n\nVerificação em: {timestamp_formatado}"
+
+            if enviar_email:
+                try:
+                    enviar_email(subject, body)  # agora vai funcionar
+                    print("✅ Email de alerta disparado com sucesso")
+                except Exception as e:
+                    print(f"❌ Falha ao enviar email de alerta: {e}")
             
             # POPUP CRÍTICO - Principal funcionalidade do sistema!
             popup(mensagem_completa, "⚠️ ALERTA RabbitMQ - Filas com Problemas!")

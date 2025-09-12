@@ -226,7 +226,8 @@ body {
 .credentials { border-left: 4px solid #007bff; }
 .environment { border-left: 4px solid #28a745; }
 .monitoring { border-left: 4px solid #6f42c1; }
-.queues { border-left: 4px solid #dc3545; }
+.email { border-left: 4px solid #f1ef45; }
+.queues { border-left: 4px solid #dc35b8; }
 
 /* Layout de duas colunas */
 .main-layout {

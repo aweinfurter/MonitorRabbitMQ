@@ -310,11 +310,30 @@
                         <!-- Monitoramento -->
                         <div class="section monitoring">
                             <div class="section-title"><i class="fas fa-clock"></i> Monitoramento</div>
-                            
+
                             <div class="form-group">
                                 <label for="intervalo">Intervalo (minutos)</label>
                                 <input type="number" id="intervalo" name="intervalo" min="1" max="60" 
                                        value="{{ config.get('intervalo_minutos', 10) }}">
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="section email">
+                            <div class="section-title"><i class="fas fa-envelope"></i> E-mail</div>
+
+                            <div class="form-group input-password">
+                                <label for="senha_email">Senha Email</label>
+                                <input type="password" id="senha_email" name="senha_email" 
+                                       value="{{ config.get('email_password', '') }}">
+                                <i class="fas fa-eye toggle-password" data-target="senha_email"></i>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email_recipients">Destinatários do Alerta (um por linha)</label>
+                                <textarea id="email_recipients" name="email_recipients" rows="4" cols="50"
+                                    placeholder="exemplo1@teste.com&#10;exemplo2@teste.com">{% for email in config.get('email_recipients', []) %}{{ email.strip() }}{% if not loop.last %}
+                                    {% endif %}{% endfor %}</textarea>
                             </div>
                         </div>
                         

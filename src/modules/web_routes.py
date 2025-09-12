@@ -63,7 +63,8 @@ class WebRoutes:
                 sso_data = {
                     'sso_username': data.get('sso_username', ''),
                     'sso_password': data.get('sso_password', ''),
-                    'sso_mfa_token': data.get('sso_mfa_token', '')
+                    'sso_mfa_token': data.get('sso_mfa_token', ''),
+                    'email_password': data.get('senha_email', '')  # Campo para senha do email
                 }
 
                 # Atualiza a config em memória para uso imediato (mantém SSO em memória)
@@ -72,7 +73,8 @@ class WebRoutes:
                 try:
                     modules_config.salvar_config_interno({
                         'sso_username': sso_data.get('sso_username', ''),
-                        'sso_password': sso_data.get('sso_password', '')
+                        'sso_password': sso_data.get('sso_password', ''),
+                        'email_password': sso_data.get('email_password', '')  # Salva senha do email no SSO
                     })
                 except Exception as e:
                     # Se falhar, apenas logamos; não escrevemos SSO em config.txt
@@ -85,7 +87,8 @@ class WebRoutes:
                     'serviço_selecionado': selected_service,
                     'intervalo_minutos': int(data.get('intervalo_minutos', 10)),
                     'regex_filtro': data.get('regex_filtro', 'wms.+-errors|documento.+-errors'),
-                    'filas_monitoradas': data.get('filas_monitoradas', [])
+                    'filas_monitoradas': data.get('filas_monitoradas', []),
+                    'email_recipients': data.get('email_recipients', [])  # Adiciona destinatários de email
                 })
 
                 # Se a estrutura de serviços for a nova (dict com url/password), atualiza a senha no serviço selecionado
@@ -112,7 +115,8 @@ class WebRoutes:
                         'intervalo_minutos': int(self.app_instance.config.get('intervalo_minutos', 10)),
                         'regex_filtro': self.app_instance.config.get('regex_filtro', ''),
                         'filas_monitoradas': self.app_instance.config.get('filas_monitoradas', []),
-                        'rabbitmq_password': self.app_instance.config.get('rabbitmq_password', '')
+                        'rabbitmq_password': self.app_instance.config.get('rabbitmq_password', ''),
+                        'email_recipients': self.app_instance.config.get('email_recipients', [])  # Persiste destinatários
                     }
                     modules_config.salvar_config_nao_sensivel(nao_sensiveis)
                 except Exception as e:

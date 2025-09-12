@@ -4,20 +4,18 @@ Responsável por exibir alertas e popups do sistema
 Sistema otimizado sem dependências do Selenium (agora usa selenium_embed.py)
 """
 
-import time
 import ctypes
 import platform
-import os
 
-# Win32 imports opcionais
-if platform.system() == "Windows":
-    try:
-        import win32gui
-        import win32con
-        WIN32_AVAILABLE = True
-    except ImportError:
-        WIN32_AVAILABLE = False
-        print("⚠️ win32gui não disponível - algumas funcionalidades podem ser limitadas")
+# # Win32 imports opcionais
+# if platform.system() == "Windows":
+#     try:
+#         import win32gui
+#         import win32con
+#         WIN32_AVAILABLE = True
+#     except ImportError:
+#         WIN32_AVAILABLE = False
+#         print("⚠️ win32gui não disponível - algumas funcionalidades podem ser limitadas")
 
 # === Funções internas para cada SO ===
 def _popup_windows(msg, title):
@@ -82,8 +80,8 @@ def _popup_macos(msg, title):
         print(f"📢 ALERTA: {title}")
         print(f"💬 {msg}")
 
-# === Função principal de popup ===
-def popup(msg, title="Monitor RabbitMQ - Alerta"):
+# === Função de popup ===
+def _popup_noblock(msg, title="Monitor RabbitMQ - Alerta"):
     """
     Exibe um popup de alerta adequado para o sistema operacional
     """
@@ -101,6 +99,10 @@ def popup(msg, title="Monitor RabbitMQ - Alerta"):
         _popup_macos(msg, title)
     else:
         print(f"⚠️ Sistema {system} não suportado para popups nativos")
+
+def popup(msg, title="Monitor RabbitMQ - Alerta"):
+    import threading
+    threading.Thread(target=_popup_noblock, args=(msg, title), daemon=True).start()
 
 def confirmar_modo_invisivel():
     """

@@ -47,7 +47,8 @@ class ConfigManager:
         self.config_interno = {
             "sso_username": "",
             "sso_password": "",
-            "sso_mfa_token": ""
+            "sso_mfa_token": "",
+            "email_password": ""
         }
         
         # Configurações padrão (não-sensíveis) - podem ser exportadas
@@ -114,7 +115,8 @@ class ConfigManager:
             "username": "supply-logistica-devops",
             "rabbitmq_password": "lvf4G285N9!RbxZM@ysUDCPUtoebjW",
             "intervalo_minutos": 10,
-            "regex_filtro": "wms.+-errors|documento.+-errors|etiqueta.+-errors|wes.+-errors"
+            "regex_filtro": "wms.+-errors|documento.+-errors|etiqueta.+-errors|wes.+-errors",
+            "email_recipients": []
         }
         
         # Carrega configurações do arquivo se existir
@@ -139,9 +141,12 @@ class ConfigManager:
                         if chave == "sso_password":
                             # Decodifica a senha
                             self.config_interno[chave] = decodificar_senha(sso_dados[chave])
+                        elif chave == "email_password":
+                            # Decodifica a senha
+                            self.config_interno[chave] = decodificar_senha(sso_dados[chave])
                         else:
-                            self.config_interno[chave] = sso_dados[chave]
-                
+                            self.config_interno[chave] = sso_dados[chave]                       
+          
                 print(f"🔐 Credenciais SSO carregadas do arquivo {SSO_CONFIG_FILE}")
             else:
                 print(f"🔐 Arquivo {SSO_CONFIG_FILE} não encontrado, SSO precisará ser configurado")
@@ -160,6 +165,9 @@ class ConfigManager:
 
             if "sso_password" in dados_para_salvar:
                 dados_para_salvar["sso_password"] = codificar_senha(dados_para_salvar["sso_password"])
+
+            if "email_password" in dados_para_salvar:
+                dados_para_salvar["email_password"] = codificar_senha(dados_para_salvar["email_password"])
             
             with open(SSO_CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(dados_para_salvar, f, indent=2, ensure_ascii=False)

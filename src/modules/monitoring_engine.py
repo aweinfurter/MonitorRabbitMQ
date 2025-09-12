@@ -18,11 +18,15 @@ class MonitoringEngine:
     """Motor principal de monitoramento"""
     
     def __init__(self, app_instance):
+        """Inicializa o motor de monitoramento com referência para a aplicação."""
         self.app_instance = app_instance
         self.config = app_instance.config
         self.logging_system = app_instance.logging_system
         self.selenium_manager = app_instance.selenium_manager
         self.monitoring_thread = None
+
+        # contador de falhas consecutivas para detectar quando reiniciar o Selenium
+        self._consec_failures = 0
         
     def iniciar_monitoramento_real(self):
         """Inicia monitoramento real"""
@@ -92,15 +96,36 @@ class MonitoringEngine:
                     self.logging_system.enviar_log_web("🔄 CICLO", f"Iniciando ciclo {ciclo} de monitoramento...")
                     
                     # Verifica as filas diretamente (login já foi feito com sucesso)
-                    self._verificar_filas_selenium_embarcado(queue_names, intervalo_minutos)
+                    ok = self._verificar_filas_selenium_embarcado(queue_names, intervalo_minutos)
+                    if ok is False or ok is None:
+                        # Incrementa contador de falhas consecutivas
+                        self._consec_failures += 1
+                        self.logging_system.enviar_log_web("⚠️ COLETA", f"Falha na coleta (falhas consecutivas={self._consec_failures})")
+                        
+                        # Verifica se precisa reiniciar imediatamente
+                        restart_threshold = int(self.app_instance.config.get('restart_threshold', 3))
+                        if self._consec_failures >= restart_threshold:
+                            self.logging_system.enviar_log_web("🔁 RESTART", f"Falhas consecutivas ({self._consec_failures}) >= {restart_threshold} - reiniciando Selenium AGORA")
+                            if self._reiniciar_selenium_do_zero():
+                                self._consec_failures = 0  # Reset contador após reinicialização bem-sucedida
+                                self.logging_system.enviar_log_web("✅ RESTART", "Selenium reiniciado com sucesso - continuando monitoramento")
+                            else:
+                                self.logging_system.enviar_log_web("⛔ RESTART", "Falha ao reiniciar Selenium - encerrando monitoramento")
+                                self.encerrar_monitoramento()
+                                break
+                    else:
+                        # reseta contador se sucesso
+                        if self._consec_failures > 0:
+                            self.logging_system.enviar_log_web("✅ COLETA", "Coleta bem sucedida - resetando contador de falhas")
+                            self._consec_failures = 0
                     
                     ciclo += 1
                     
                     # Só aguarda se não for a primeira execução
                     if self.app_instance.is_monitoring:
                         self.logging_system.enviar_log_web("⏰ AGUARDANDO", f"Próxima verificação em {intervalo_minutos} minutos...")
-                        
-                        for i in range(intervalo_minutos * 60):  # Converte para segundos
+
+                        for _ in range(intervalo_minutos * 60):  # Converte para segundos
                             if not self.app_instance.is_monitoring:
                                 break
                             time.sleep(1)
@@ -128,7 +153,7 @@ class MonitoringEngine:
             driver = self.selenium_manager.obter_driver()
             if not driver:
                 self.logging_system.enviar_log_web("❌ DRIVER", "Driver não disponível")
-                return
+                return False
             
             try:
                 from modules.rabbitmq import aplicar_filtro_regex
@@ -137,6 +162,10 @@ class MonitoringEngine:
                 self.logging_system.enviar_log_web("✅ FILTRO", f"Filtro aplicado: {regex_filtro}")
             except Exception as e:
                 self.logging_system.enviar_log_web("⚠️ FILTRO", f"Erro ao aplicar filtro: {e}")
+                # Se não consegue aplicar filtro, pode ser problema de interface
+                if "no such element" in str(e).lower() or "unable to locate element" in str(e).lower():
+                    self.logging_system.enviar_log_web("❌ INTERFACE", "Problema de interface detectado no filtro - página pode não ter carregado")
+                    return False
             
             # Aguarda um pouco para o filtro ser aplicado
             time.sleep(1)
@@ -146,16 +175,32 @@ class MonitoringEngine:
             
             try:
                 from modules.monitor import verificar_fila
-                verificar_fila(driver, queue_names, intervalo_minutos)
-                self.logging_system.enviar_log_web("✅ VERIFICAÇÃO", "Verificação das filas concluída com sucesso!")
-                
+                resultado = verificar_fila(driver, queue_names, intervalo_minutos)
+                # Se verificar_fila não retornar explicitamente True, considera como falha
+                if resultado is True:
+                    self.logging_system.enviar_log_web("✅ VERIFICAÇÃO", "Verificação das filas concluída com sucesso!")
+                    return True
+                else:
+                    self.logging_system.enviar_log_web("❌ VERIFICAÇÃO", "Verificação retornou falha ou None - tentando fallback")
+                    # Fallback para método JavaScript
+                    resultado_fallback = self._verificar_filas_javascript(queue_names, driver)
+                    return resultado_fallback
             except Exception as e:
                 self.logging_system.enviar_log_web("❌ VERIFICAÇÃO", f"Erro na verificação: {e}")
-                # Fallback para método JavaScript se a verificação tradicional falhar
-                self._verificar_filas_javascript(queue_names, driver)
+                # Se houver exceção, tenta fallback mas é provável que falhe também
+                try:
+                    resultado_fallback = self._verificar_filas_javascript(queue_names, driver)
+                    if resultado_fallback is False:
+                        self.logging_system.enviar_log_web("❌ FALLBACK", "Método JavaScript também falhou - PROBLEMA DE INTERFACE")
+                        return False
+                    return resultado_fallback
+                except Exception as e2:
+                    self.logging_system.enviar_log_web("❌ FALLBACK", f"Método JavaScript também gerou exceção: {e2}")
+                    return False
                     
         except Exception as e:
             self.logging_system.enviar_log_web("❌ ERRO FILAS", f"Erro ao verificar filas: {e}")
+            return False
     
     def _verificar_filas_javascript(self, queue_names, driver):
         """Método fallback usando JavaScript para verificar filas"""
@@ -194,16 +239,33 @@ class MonitoringEngine:
             
             # Executa script para obter dados das filas
             if driver:
-                filas_data = driver.execute_script(script_filas)
+                try:
+                    filas_data = driver.execute_script(script_filas)
+
+                    if filas_data and len(filas_data) > 0:
+                        self.logging_system.enviar_log_web("📊 DADOS", f"Encontradas {len(filas_data)} filas na página")
+                        filas_encontradas, _, _ = self._processar_dados_filas_real(filas_data, queue_names)
+                        
+                        # Log detalhado do resultado
+                        if filas_encontradas:
+                            self.logging_system.enviar_log_web("✅ RESULTADO", f"✅ {len(filas_encontradas)} filas monitoradas encontradas - SUCESSO")
+                            return True
+                        else:
+                            self.logging_system.enviar_log_web("❌ RESULTADO", "❌ Nenhuma fila monitorada encontrada - FALHA")
+                            return False
+                    else:
+                        self.logging_system.enviar_log_web("❌ DADOS", "❌ Não foi possível obter dados das filas via JavaScript - INTERFACE NÃO CARREGADA")
+                        return False
+                except Exception as js_error:
+                    self.logging_system.enviar_log_web("❌ JAVASCRIPT", f"Erro ao executar script JavaScript: {js_error}")
+                    return False
                 
-                if filas_data:
-                    self.logging_system.enviar_log_web("📊 DADOS", f"Encontradas {len(filas_data)} filas na página")
-                    self._processar_dados_filas_real(filas_data, queue_names)
-                else:
-                    self.logging_system.enviar_log_web("⚠️ DADOS", "Não foi possível obter dados das filas via JavaScript")
-                    
         except Exception as e:
             self.logging_system.enviar_log_web("❌ FALLBACK", f"Erro no método JavaScript: {e}")
+            return False
+
+        # Se chegou até aqui, não foi possível executar a coleta via JS
+        return False
     
     def _processar_dados_filas_real(self, filas_data, queue_names):
         """Processa os dados das filas de forma similar ao sistema original"""
@@ -245,9 +307,39 @@ class MonitoringEngine:
             
             # Exibe resumo detalhado
             self._exibir_resumo_verificacao(filas_encontradas, filas_com_problemas, filas_nao_encontradas)
-                    
+            return filas_encontradas, filas_com_problemas, filas_nao_encontradas
+
         except Exception as e:
             self.logging_system.enviar_log_web("❌ PROCESSAMENTO", f"Erro ao processar dados: {e}")
+            return [], [], queue_names
+
+    def _reiniciar_selenium_do_zero(self):
+        """Finaliza e reinicializa o Selenium embarcado do zero.
+
+        Retorna True em sucesso, False caso contrário.
+        """
+        try:
+            self.logging_system.enviar_log_web("🔁 RESTART", "Iniciando rotina de reinicialização do Selenium...")
+            # Finaliza o Selenium atual
+            try:
+                self.selenium_manager.finalizar_selenium_embarcado()
+            except Exception:
+                pass
+
+            # Pequena espera para garantir limpeza de processos
+            time.sleep(2)
+
+            # Tenta inicializar novamente
+            ok = self.selenium_manager.inicializar_selenium_embarcado()
+            if ok:
+                self.logging_system.enviar_log_web("✅ RESTART", "Selenium reiniciado com sucesso")
+                return True
+            else:
+                self.logging_system.enviar_log_web("❌ RESTART", "Falha ao reiniciar Selenium")
+                return False
+        except Exception as e:
+            self.logging_system.enviar_log_web("❌ RESTART", f"Erro durante reinicialização: {e}")
+            return False
     
     def _exibir_resumo_verificacao(self, filas_encontradas, filas_com_problemas, filas_nao_encontradas):
         """Exibe resumo detalhado da verificação"""
